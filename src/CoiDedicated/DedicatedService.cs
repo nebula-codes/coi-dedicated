@@ -12,7 +12,7 @@ namespace CoiDedicated;
 
 internal static class DedicatedService
 {
-    public static void Run(HostOptions options, DependencyResolver resolver, object runner)
+    public static void Run(HostOptions options, DependencyResolver resolver, object runner, CancellationToken cancellationToken = default)
     {
         MethodInfo update = runner.GetType().GetMethod("Update")!;
         ISimLoopEvents simulation = resolver.Resolve<ISimLoopEvents>();
@@ -24,62 +24,55 @@ internal static class DedicatedService
         using var server = new DedicatedControlServer(options.BindAddress, options.Port, secret, build);
         Console.WriteLine($"[server] Control key file: {secretPath}");
         Console.WriteLine($"[server] Player join key file: {joinSecretPath}");
-        Console.WriteLine("[server] Simulation continues with no players. Joining briefly holds ticks while the snapshot loads. Ctrl+C saves and stops.");
+        Console.WriteLine("[server] Simulation continues with no players. Joining briefly holds ticks while the snapshot loads. Ctrl+C or SIGTERM saves and stops.");
         resolver.Resolve<SimLoopEvents>().SetSimSpeed(1);
         runner.GetType().GetProperty("ExtraSimUpdateMs")!.SetValue(runner, Fix32.Zero);
         game.ScheduleSystem(new SetSimPauseStateCmd(false));
-        using var stop = new CancellationTokenSource();
-        ConsoleCancelEventHandler handler = (_, e) => { e.Cancel = true; stop.Cancel(); };
-        Console.CancelKeyPress += handler;
         var clock = Stopwatch.StartNew();
         long nextTick = 0, nextSave = options.AutosaveSeconds * 1000L;
         bool shutdownRequested = false;
-        try
+        while (!cancellationToken.IsCancellationRequested && !shutdownRequested && (options.RunSeconds == 0 || clock.Elapsed.TotalSeconds < options.RunSeconds))
         {
-            while (!stop.IsCancellationRequested && !shutdownRequested && (options.RunSeconds == 0 || clock.Elapsed.TotalSeconds < options.RunSeconds))
+            server.Pump(command =>
             {
-                server.Pump(command =>
+                switch (command)
                 {
-                    switch (command)
-                    {
-                        case "pause": game.ScheduleSystem(new SetSimPauseStateCmd(true)); break;
-                        case "resume": game.ScheduleSystem(new SetSimPauseStateCmd(false)); break;
-                        case "save": Save(options, resolver); break;
-                        case "snapshot":
-                            string path = Save(options, resolver);
-                            // Pin this exact save generation before the simulation
-                            // can advance and another save replaces the path.
-                            var snapshot = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, 65536, FileOptions.Asynchronous);
-                            return new ControlReply("Snapshot ready", snapshot, simulation.CurrentStep.Value);
-                        case "shutdown": shutdownRequested = true; return new ControlReply("Saving and shutting down");
-                    }
-                    return new ControlReply(JsonSerializer.Serialize(new { command, step = simulation.CurrentStep.Value, paused = simulation.IsSimPaused, players = game.PlayerCount, joining = game.WaitingForJoin, uptimeSeconds = (int)clock.Elapsed.TotalSeconds, world = GameWorldStatus.Read(resolver) }));
-                });
-                game.Pump(() => Save(options, resolver), simulation);
-                if (!game.WaitingForJoin && clock.ElapsedMilliseconds >= nextTick)
-                {
-                    int beforeStep = simulation.CurrentStep.Value;
-                    bool beforePaused = simulation.IsSimPaused;
-                    var commands = game.Admit(resolver);
-                    update.Invoke(runner, new object[] { 100.ToFix32() });
-                    game.Publish(beforeStep, simulation.CurrentStep.Value, beforePaused, commands);
-                    // Do not accumulate an unbounded catch-up backlog on a slow island.
-                    nextTick = Math.Max(nextTick + 100, clock.ElapsedMilliseconds);
+                    case "pause": game.ScheduleSystem(new SetSimPauseStateCmd(true)); break;
+                    case "resume": game.ScheduleSystem(new SetSimPauseStateCmd(false)); break;
+                    case "save": Save(options, resolver); break;
+                    case "snapshot":
+                        string path = Save(options, resolver);
+                        // Pin this exact save generation before the simulation
+                        // can advance and another save replaces the path.
+                        var snapshot = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete, 65536, FileOptions.Asynchronous);
+                        return new ControlReply("Snapshot ready", snapshot, simulation.CurrentStep.Value);
+                    case "shutdown": shutdownRequested = true; return new ControlReply("Saving and shutting down");
                 }
-                if (clock.ElapsedMilliseconds >= nextSave)
-                {
-                    Save(options, resolver);
-                    nextSave = clock.ElapsedMilliseconds + options.AutosaveSeconds * 1000L;
-                }
-                Thread.Sleep(5);
+                return new ControlReply(JsonSerializer.Serialize(new { command, step = simulation.CurrentStep.Value, paused = simulation.IsSimPaused, players = game.PlayerCount, joining = game.WaitingForJoin, uptimeSeconds = (int)clock.Elapsed.TotalSeconds, world = GameWorldStatus.Read(resolver) }));
+            });
+            game.Pump(() => Save(options, resolver), simulation);
+            if (!game.WaitingForJoin && clock.ElapsedMilliseconds >= nextTick)
+            {
+                int beforeStep = simulation.CurrentStep.Value;
+                bool beforePaused = simulation.IsSimPaused;
+                var commands = game.Admit(resolver);
+                update.Invoke(runner, new object[] { 100.ToFix32() });
+                game.Publish(beforeStep, simulation.CurrentStep.Value, beforePaused, commands);
+                // Do not accumulate an unbounded catch-up backlog on a slow island.
+                nextTick = Math.Max(nextTick + 100, clock.ElapsedMilliseconds);
             }
-            Save(options, resolver);
-            File.WriteAllText(Path.Combine(options.DataDirectory, "world-status.json"), JsonSerializer.Serialize(GameWorldStatus.Read(resolver, includeTerrain: true), new JsonSerializerOptions { WriteIndented = true }));
-            if (options.Diagnostics)
-                File.WriteAllText(Path.Combine(options.DataDirectory, "raw-state.json"), JsonSerializer.Serialize(GameWorldStatus.WriteRawState(resolver, Path.Combine(options.DataDirectory, "server-state.raw"))));
-            if (shutdownRequested) Thread.Sleep(100); // Allow the queued shutdown acknowledgment to leave.
+            if (clock.ElapsedMilliseconds >= nextSave)
+            {
+                Save(options, resolver);
+                nextSave = clock.ElapsedMilliseconds + options.AutosaveSeconds * 1000L;
+            }
+            Thread.Sleep(5);
         }
-        finally { Console.CancelKeyPress -= handler; }
+        Save(options, resolver);
+        File.WriteAllText(Path.Combine(options.DataDirectory, "world-status.json"), JsonSerializer.Serialize(GameWorldStatus.Read(resolver, includeTerrain: true), new JsonSerializerOptions { WriteIndented = true }));
+        if (options.Diagnostics)
+            File.WriteAllText(Path.Combine(options.DataDirectory, "raw-state.json"), JsonSerializer.Serialize(GameWorldStatus.WriteRawState(resolver, Path.Combine(options.DataDirectory, "server-state.raw"))));
+        if (shutdownRequested) Thread.Sleep(100); // Allow the queued shutdown acknowledgment to leave.
     }
 
     private static string ReadSecret(string path)

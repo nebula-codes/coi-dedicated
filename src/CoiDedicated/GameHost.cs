@@ -19,7 +19,7 @@ namespace CoiDedicated;
 
 internal static class GameHost
 {
-    public static int Run(HostOptions options, Action<DependencyResolver, object>? session = null)
+    public static int Run(HostOptions options, Action<DependencyResolver, object>? session = null, CancellationToken cancellationToken = default)
     {
         LocalizationManager.MakeInvariantCultureDefault();
         Log.LogReceived += entry => Console.WriteLine(entry.ToString());
@@ -76,7 +76,11 @@ internal static class GameHost
             });
         }
         var initialization = (IEnumerator)build.Invoke(null, parameters)!;
-        while (initialization.MoveNext()) Console.WriteLine($"[init] {initialization.Current}");
+        while (initialization.MoveNext())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Console.WriteLine($"[init] {initialization.Current}");
+        }
         // The load is synchronous. Release the input before a server replaces
         // that same save path during autosave (Windows denies it while open).
         loadStream?.Dispose();
@@ -96,13 +100,14 @@ internal static class GameHost
             }
             if (options.Serve)
             {
-                DedicatedService.Run(options, resolver, runner);
+                DedicatedService.Run(options, resolver, runner, cancellationToken);
                 return 0;
             }
             // Service and peer sessions order their own resume command. A bounded
             // local simulation resumes through the ordinary game input queue.
             resolver.Resolve<IInputScheduler>().ScheduleInputCmd(new SetSimPauseStateCmd(false));
-            for (int i = 0; i < options.Steps; i++) update.Invoke(runner, new object[] { 100.ToFix32() });
+            for (int i = 0; i < options.Steps && !cancellationToken.IsCancellationRequested; i++)
+                update.Invoke(runner, new object[] { 100.ToFix32() });
             Console.WriteLine($"[server] Advanced to step {simulation.CurrentStep.Value}");
             DedicatedService.Save(options, resolver);
             string report = System.Text.Json.JsonSerializer.Serialize(GameWorldStatus.Read(resolver, includeTerrain: true), new System.Text.Json.JsonSerializerOptions { WriteIndented = true });

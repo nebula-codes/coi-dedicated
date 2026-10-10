@@ -1,6 +1,6 @@
 # Captain of Industry dedicated server prototype
 
-An independent Windows server that runs Captain of Industry's island simulation using the owner's installed game assemblies. It runs without Unity, a graphics device, or a player hosting a game window. It saves the island, resumes it on restart, and accepts authenticated clients through a matching experimental game plugin.
+An independent dedicated server that runs Captain of Industry's island simulation using the owner's installed game assemblies. It runs without Unity, a graphics device, or a player hosting a game window. It saves the island, resumes it on restart, and accepts authenticated clients through a matching experimental game plugin.
 
 **Development prototype for CoI 0.8.7d.** This is a custom server/client pair, not a CoopFoundry server. Multiplayer command coverage and runtime validation are still being expanded. Game updates, other mods, and DLC combinations require compatibility testing. The repository contains integration code, not redistributed game binaries.
 
@@ -16,6 +16,12 @@ Get the ready-to-run Windows packages from [GitHub Releases](https://github.com/
 Use these for experimental sessions: roads, transports, terrain editing, and other commands remain unsupported. Full-state determinism, long sessions, and automatic resynchronization are not proven. Back up islands you care about. Share the player `join.key` privately; never publish keys, your saves, or the game installation.
 
 For release changes and tested behavior, see the [alpha release notes](docs/releases/v0.1.0-alpha.1.md). Source builds are described below. This project's source is MIT-licensed; bundled dependency notices are described in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+## Docker and Portainer
+
+For a Linux x86-64 PC or NAS, use the [Docker / Portainer guide](docs/docker-portainer.md) and [Portainer stack](compose.portainer.yml). The container resumes its island from a persistent volume, saves on normal container shutdown, and publishes only the gameplay port. You supply a read-only copy of your matching game installation. The image contains no game binaries or player keys.
+
+Portainer provides container start/stop/restart and logs. The existing Windows browser dashboard remains a separate deployment. The Docker server uses the same multiplayer protocol as the `0.1.0-alpha.1` Windows client; its alpha gameplay limitations still apply.
 
 ## Server manager from source
 

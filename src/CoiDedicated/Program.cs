@@ -8,6 +8,7 @@ internal static class Program
 {
     public static int Main(string[] args)
     {
+        using var shutdown = new ShutdownSignal();
         StreamWriter? logWriter = null;
         TextWriter originalOut = Console.Out, originalError = Console.Error;
         try
@@ -32,7 +33,7 @@ internal static class Program
                 ? new FileStream(Path.Combine(options.DataDirectory, ".server.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None)
                 : null;
             if (options.Serve && !options.Inspect)
-                options = PrepareServerWorld(options);
+                options = PrepareServerWorld(options, shutdown.Token);
             // Bind only the game-owned assemblies. The host supplies its own .NET runtime.
             AssemblyLoadContext.Default.Resolving += (_, name) =>
             {
@@ -40,12 +41,13 @@ internal static class Program
                 return AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.Combine(managed, name.Name + ".dll"));
             };
             Environment.CurrentDirectory = options.GameDirectory;
-            return GameHost.Run(options);
+            shutdown.Token.ThrowIfCancellationRequested();
+            return GameHost.Run(options, cancellationToken: shutdown.Token);
         }
         catch (OperationCanceledException error)
         {
             Console.Error.WriteLine(error.Message);
-            return 130;
+            return shutdown.Token.IsCancellationRequested ? 0 : 130;
         }
         catch (Exception error)
         {
@@ -61,7 +63,7 @@ internal static class Program
         }
     }
 
-    private static HostOptions PrepareServerWorld(HostOptions options)
+    private static HostOptions PrepareServerWorld(HostOptions options, CancellationToken cancellationToken)
     {
         // The shipped loader repairs new-world terrain queues and props. Run
         // those repairs in separate processes before any client can join, then
@@ -72,12 +74,13 @@ internal static class Program
         if (source is null)
         {
             string initialDirectory = Path.Combine(staging, "new");
-            RunBootstrap(options, initialDirectory, load: null);
+            RunBootstrap(options, initialDirectory, load: null, cancellationToken);
             source = Path.Combine(initialDirectory, "island.save");
         }
 
         string canonicalDirectory = Path.Combine(staging, "canonical");
-        RunBootstrap(options, canonicalDirectory, source);
+        RunBootstrap(options, canonicalDirectory, source, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         string canonical = Path.Combine(canonicalDirectory, "island.save");
         string output = Path.Combine(options.DataDirectory, "island.save");
         string temporary = output + ".bootstrap.tmp";
@@ -97,8 +100,9 @@ internal static class Program
         return options with { Load = output };
     }
 
-    private static void RunBootstrap(HostOptions options, string dataDirectory, string? load)
+    private static void RunBootstrap(HostOptions options, string dataDirectory, string? load, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Directory.CreateDirectory(dataDirectory);
         string processPath = Environment.ProcessPath ?? throw new InvalidOperationException("Cannot locate the running host executable.");
         var start = new ProcessStartInfo(processPath)
@@ -128,26 +132,18 @@ internal static class Program
         using var errors = File.Create(errorPath);
         Task stdout = CopyBootstrapOutput(child.StandardOutput, log);
         Task stderr = CopyBootstrapOutput(child.StandardError, errors);
-        bool interrupted = false;
-        ConsoleCancelEventHandler cancel = (_, e) =>
+        using var interruption = cancellationToken.Register(() =>
         {
-            e.Cancel = true;
-            interrupted = true;
             try { if (!child.HasExited) child.Kill(entireProcessTree: true); }
             catch (InvalidOperationException) { }
-        };
-        Console.CancelKeyPress += cancel;
-        try
-        {
-            child.WaitForExit();
-            Task.WhenAll(stdout, stderr).GetAwaiter().GetResult();
-            if (interrupted) throw new OperationCanceledException("World bootstrap interrupted.");
-            if (child.ExitCode != 0)
-                throw new InvalidOperationException($"World bootstrap exited with code {child.ExitCode}. See {logPath} and {errorPath}.");
-            if (!File.Exists(Path.Combine(dataDirectory, "island.save")))
-                throw new InvalidOperationException($"World bootstrap did not produce a save. See {logPath}.");
-        }
-        finally { Console.CancelKeyPress -= cancel; }
+        });
+        child.WaitForExit();
+        Task.WhenAll(stdout, stderr).GetAwaiter().GetResult();
+        cancellationToken.ThrowIfCancellationRequested();
+        if (child.ExitCode != 0)
+            throw new InvalidOperationException($"World bootstrap exited with code {child.ExitCode}. See {logPath} and {errorPath}.");
+        if (!File.Exists(Path.Combine(dataDirectory, "island.save")))
+            throw new InvalidOperationException($"World bootstrap did not produce a save. See {logPath}.");
     }
 
     private static async Task CopyBootstrapOutput(StreamReader source, Stream destination)

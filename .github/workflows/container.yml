@@ -1,0 +1,41 @@
+name: Publish Linux container
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: publish-container
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      IMAGE: ghcr.io/nebula-codes/coi-dedicated
+      VERSION: 0.1.0-alpha.2
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Build from the checksum-pinned distributable
+        run: |
+          docker build --platform linux/amd64 \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --tag "$IMAGE:$VERSION" --tag "$IMAGE:alpha" .
+      - name: Verify application starts without bundled game files
+        run: |
+          docker run --rm --entrypoint dotnet "$IMAGE:$VERSION" /app/server/CoiDedicated.dll --help
+          docker run --rm --entrypoint dotnet "$IMAGE:$VERSION" /app/control/CoiDedicated.Control.dll --help
+          docker run --rm --entrypoint sh "$IMAGE:$VERSION" -c 'test -z "$(find /app -iname "Mafi*.dll" -o -iname "UnityEngine*.dll" -o -name "*.key" -o -name "*.save")"'
+      - name: Publish to GitHub Container Registry
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker push "$IMAGE:$VERSION"
+          docker push "$IMAGE:alpha"

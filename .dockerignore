@@ -1,0 +1,9 @@
+# Only public container launch scripts are sent to Docker. In particular,
+# exclude Steam installs, keys, saves, local artifacts, and source research.
+**
+!Dockerfile
+!.dockerignore
+!docker/
+!docker/entrypoint.sh
+!docker/control.sh
+!docker/healthcheck.sh

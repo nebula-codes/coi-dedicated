@@ -1,0 +1,50 @@
+# Alternate stack: build from the public repository if GHCR is unavailable.
+# This downloads only the checksum-pinned public server package, never /game.
+services:
+  coi-server:
+    image: coi-dedicated:0.1.0-alpha.2-local
+    build:
+      context: https://github.com/nebula-codes/coi-dedicated.git#v0.1.0-alpha.2
+      dockerfile: Dockerfile
+    platform: linux/amd64
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 120s
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "${COI_BIND_IP:-0.0.0.0}:${COI_GAME_PORT:-28551}:28551/tcp"
+    environment:
+      COI_MAP: "${COI_MAP:-New Haven}"
+      COI_STARTING_FACTORY: "${COI_STARTING_FACTORY:-true}"
+      COI_AUTOSAVE_SECONDS: "${COI_AUTOSAVE_SECONDS:-60}"
+    volumes:
+      - type: bind
+        source: "${COI_GAME_DIR:?Set COI_GAME_DIR to the absolute game folder on the Linux Docker host}"
+        target: /game
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: volume
+        source: coi-data
+        target: /data
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    healthcheck:
+      test: ["CMD", "/app/healthcheck.sh"]
+      interval: 30s
+      timeout: 35s
+      start_period: 5m
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  coi-data:
+    name: "${COI_DATA_VOLUME:-coi-dedicated-data}"
