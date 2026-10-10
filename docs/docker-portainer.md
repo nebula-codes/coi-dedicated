@@ -1,6 +1,12 @@
 # Run the dedicated server in Portainer
 
-This stack runs the island on a **Linux Intel/AMD 64-bit Docker host**. Portainer supplies start, stop, restart, logs, console, and health status. The Windows browser manager is not part of this image. Players continue using the Windows CoI multiplayer client.
+**Deployment paused — do not deploy or continue hosting with the published alpha.5 Docker image.** Its startup omits the game's required Steam validation and can trigger a delayed pirate game-over that damages the island. Preserve the data volume and separate backups. The current Linux container cannot complete the required validation and is not a safe or ready hosting option. Current source stops on Linux before loading an island. See [the incident and validation ledger](server-startup-validation.md).
+
+The current startup implementation requires Windows x64 with Steam running and signed into an account that owns Captain of Industry. It calls the installed game's unchanged Facepunch `SteamClient.Init`, then checks `SteamClient.IsValid` and `SteamApps.IsSubscribed` before world initialization. No Unity game window is required. Copying game files or credentials into a Linux container does not establish this supported startup path. Container support needs a supported authenticated hosting design and runtime validation before deployment can resume.
+
+**Everything below is archived alpha.5 configuration, retained for reference only. These instructions are unvalidated for authenticated startup and must not be treated as deployment instructions for a current working server.** The startup correction is in source; no corrected Docker release is announced here. The alpha.5 and alpha.5.1 Windows clients remain unchanged.
+
+The archived stack targets a **Linux Intel/AMD 64-bit Docker host**. Portainer supplies start, stop, restart, logs, console, and health status. The Windows browser manager is not part of this image. Players use the Windows CoI multiplayer client.
 
 This is an unofficial alpha for **Captain of Industry 0.8.7d**. It has the same command coverage as the Windows server, including native building batches, roads, transports, terrain, truck assignment, logistics, and many inspector controls. It supports shared speeds 1–4 and selected-state checkpoints. The matching client attempts bounded snapshot recovery after a connection or state failure. See the [coverage ledger](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/docs/multiplayer-coverage.md) and [synchronization limits](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/docs/synchronization.md); full gameplay parity and long-session determinism remain unproven.
 
@@ -21,7 +27,7 @@ Copy the **entire** `Captain of Industry` installation from your own Windows Ste
 
 Use your NAS file share, SFTP, or another normal file copy. Preserve the original filename case and directory structure. `/srv/coi/game` is an example **Linux host path**, not a path on the Windows PC or the machine merely displaying Portainer. The container needs read access to these files and traverse access to their directories as UID/GID **1654**.
 
-Use matching game assemblies and DLC configuration on server and clients. The current integration supports the base-game save dependencies only. Keep a separate server copy so a Steam update cannot change a running island's game files. The public container and GitHub downloads contain our server software, not the game, Steam credentials, saves, or keys. No game login is entered in Portainer.
+Use matching game assemblies and DLC configuration on server and clients. The current integration supports the base-game save dependencies only. Keep a separate server copy so a Steam update cannot change a running island's game files. The public container and GitHub downloads contain our server software, not the game, Steam credentials, saves, or keys. This archived setup has no validated Steam session and is insufficient for safe hosting.
 
 ## 2. Deploy the stack
 
@@ -119,7 +125,7 @@ For a host bind mount instead of the `/data` named volume, create a dedicated di
 
 ## Build the public Linux package
 
-Developers need .NET SDK 10, PowerShell 7, this source checkout, and their own matching CoI installation. The compilation can run on Windows; the result is framework-dependent Linux x64 managed binaries, with no game DLLs copied into the package:
+**Historical build reference only:** compiling or publishing Linux binaries does not validate authenticated startup. Current host source rejects Linux before world loading. Developers need .NET SDK 10, PowerShell 7, this source checkout, and their own matching CoI installation. The compilation can run on Windows; the result is framework-dependent Linux x64 managed binaries, with no game DLLs copied into the package:
 
 ```powershell
 pwsh ./scripts/package-linux-server.ps1 -GameDir 'F:\SteamLibrary\steamapps\common\Captain of Industry'

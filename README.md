@@ -1,39 +1,45 @@
 # Captain of Industry dedicated server prototype
 
-An independent dedicated server that runs Captain of Industry's island simulation using the owner's installed game assemblies. It runs without Unity, a graphics device, or a player hosting a game window. It saves the island, resumes it on restart, and accepts authenticated clients through a matching experimental game plugin.
+An independent dedicated server that runs Captain of Industry's island simulation using the owner's installed game assemblies. The current startup implementation requires **Windows x64 with Steam running and signed into an account that owns the game**. It runs without Unity, a graphics device, or a player hosting a game window. It saves the island, resumes it on restart, and accepts authenticated clients through a matching experimental game plugin.
 
 **Development prototype for CoI 0.8.7d.** This is a custom server/client pair, not a CoopFoundry server. Multiplayer command coverage and runtime validation are still being expanded. Game updates, other mods, and DLC combinations require compatibility testing. The repository contains integration code, not redistributed game binaries.
 
 ## Gameplay and synchronization
 
-Alpha.5 expands native building batches, roads, logistics, inspector controls, truck assignment, and camera/tool-preview sharing. It adds deterministic pacing at 1–4×, periodic selected-state checkpoints, bounded automatic snapshot recovery, and remembered connection details. It uses compatibility revision 5; all clients and servers must update together. See [the coverage and test ledger](docs/multiplayer-coverage.md) for implemented paths, evidence, and remaining work. Full gameplay parity is still incomplete.
+Alpha.5 expands native building batches, roads, logistics, inspector controls, truck assignment, and camera/tool-preview sharing. It adds deterministic pacing at 1–4×, periodic selected-state checkpoints, bounded automatic snapshot recovery, and remembered connection details. Clients and servers must use compatibility revision 5. See [the coverage and test ledger](docs/multiplayer-coverage.md) for implemented paths, evidence, and remaining work. Full gameplay parity is still incomplete.
 
 ## Download the alpha
 
-Get the [alpha.5.1 client hotfix](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.5.1) and [alpha.5 server packages](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.5). The client hotfix restores visual interpolation between simulation updates and works with the existing alpha.5 server. Everyone needs their own matching copy of Captain of Industry. The player package requires no SDK; the server-manager package includes its .NET runtime.
+**Server hosting paused for the published alpha.5 packages and Docker image.** Their startup omits the game's Steam validation and can trigger a delayed pirate game-over that damages the island. Do not start a new session with those server assets. Preserve existing saves and separate backups. The correction described here is in current source; the published alpha.5 server downloads do not contain it. See [startup validation and test status](docs/server-startup-validation.md).
+
+The [alpha.5.1 client hotfix](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.5.1) restores visual interpolation between simulation updates. This server startup correction leaves the alpha.5 and alpha.5.1 clients and compatibility revision 5 unchanged. Everyone needs their own matching copy of Captain of Industry. The player package requires no SDK.
 
 | Package | Start here |
 | --- | --- |
 | `CoI-Multiplayer-Client-0.1.0-alpha.5.1-win-x64.zip` | Extract, close the game, run **Install Client.cmd**. Follow the [player guide](docs/player-guide.md). |
-| `CoI-Server-Manager-0.1.0-alpha.5-win-x64.zip` | Extract and run **Start Server Manager.cmd**. Follow the [hosting guide](docs/hosting-guide.md). |
+| `CoI-Server-Manager-0.1.0-alpha.5-win-x64.zip` | **Affected by the startup defect; do not use for hosting.** Follow the [hosting guide](docs/hosting-guide.md) for current source requirements. |
 
-Use these for experimental sessions. Specialized gameplay variants remain unsupported; checkpoints cover selected state, and long-session/full-state determinism is not proven. Back up islands you care about. Share the player `join.key` privately; never publish keys, your saves, or the game installation.
+After startup validation is satisfied, sessions remain experimental. Specialized gameplay variants remain unsupported; checkpoints cover selected state, and long-session/full-state determinism is not proven. Back up islands you care about. Share the player `join.key` privately; never publish keys, your saves, or the game installation.
 
 For release changes and tested behavior, see the [alpha.5 release notes](docs/releases/v0.1.0-alpha.5.md). Source builds are described below. This project's source is MIT-licensed; bundled dependency notices are described in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Docker and Portainer
 
-For a Linux x86-64 PC or NAS, use the [Docker / Portainer guide](docs/docker-portainer.md) and [Portainer stack](compose.portainer.yml). The container resumes its island from a persistent volume, saves on normal container shutdown, and publishes only the gameplay port. You supply a read-only copy of your matching game installation. The image contains no game binaries or player keys.
+**Linux Docker/Portainer deployment is paused.** The existing container cannot perform the required Steam validation and is not a safe or ready hosting option. Current source rejects that platform before loading an island. The [Docker / Portainer guide](docs/docker-portainer.md) retains the old stack instructions as an explicitly unvalidated reference.
 
-Portainer provides container start/stop/restart and logs. The existing Windows browser dashboard remains a separate deployment. The Docker server uses `0.1.0-alpha.5` and accepts both the alpha.5 and alpha.5.1 Windows clients; the same gameplay limitations apply.
+Restoring container support requires a supported authenticated hosting path and runtime validation. Copying game files into a container is insufficient. For current development, use the authenticated Windows x64 path in the [hosting guide](docs/hosting-guide.md).
 
 ## Server manager from source
+
+Keep Steam running and signed into an account that owns Captain of Industry in the Windows session used to launch the host. Before each world initialization, the host uses the installed game's unchanged Facepunch Steam wrapper to call `SteamClient.Init`, then requires `SteamClient.IsValid` and `SteamApps.IsSubscribed`. Failed validation stops startup before the island is loaded. No Unity game window is required. See [the evidence and remaining validation](docs/server-startup-validation.md).
 
 In a source checkout, double-click **Server Manager.cmd** to open the local dashboard at `http://127.0.0.1:28560`. It builds missing binaries on first use. The release ZIP instead uses **Start Server Manager.cmd**. Or run from source:
 
 ```powershell
 .\scripts\start-manager.ps1
 ```
+
+For an existing checkout, stop its profiles and rebuild with `.\scripts\build.ps1` before starting the manager; reopening the dashboard does not replace an already-built alpha.5 host.
 
 The dashboard provides independent island profiles, start/stop/restart, pause/resume, save, authenticated live status, player counts, resource statistics, searchable console logs, and player-key downloads. Configure the game directory, shipped map, network binding, ports, and autosave interval in **Settings** while the server is stopped. Map and starting-factory settings only affect a new island; an existing save resumes as-is.
 
@@ -45,7 +51,7 @@ The dashboard listens on this computer's loopback address only. Use a LAN bind a
 
 ## Start the server from the command line
 
-Requires Windows, an installed copy of Captain of Industry, and the .NET 10 SDK. This machine's default game directory is `F:\SteamLibrary\steamapps\common\Captain of Industry`; set `COI_GAME_DIR` or supply `-GameDir` for another installation.
+Requires Windows x64, an installed copy of Captain of Industry, the .NET 10 SDK, and Steam running and signed into an owning account. This machine's default game directory is `F:\SteamLibrary\steamapps\common\Captain of Industry`; set `COI_GAME_DIR` or supply `-GameDir` for another installation.
 
 From this repository:
 

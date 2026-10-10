@@ -1,17 +1,21 @@
 # Host a dedicated island
 
-The Windows server runs the island without an open game window or a connected player. The local browser manager controls its process, settings, saves, and backups. This **alpha** still has limited multiplayer action coverage; read the [player guide](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/docs/player-guide.md) before starting a shared island.
+The Windows x64 server runs the island without an open Unity game window or a connected player. **Steam must remain running and signed into an account that owns Captain of Industry.** The local browser manager controls its process, settings, saves, and backups. This **alpha** still has limited multiplayer action coverage; read the [player guide](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/docs/player-guide.md) before starting a shared island.
+
+**Do not host with the published alpha.5 server ZIP or Docker image.** A startup defect in those assets omits the game's Steam validation and can trigger a delayed pirate game-over, including population loss and vehicle scrapping. The startup correction is in current source; those published assets remain affected. Preserve the current island and any pre-incident backups separately. Correcting startup does not undo damage already saved to an island. See [startup validation and test status](server-startup-validation.md).
 
 ## First start
 
-1. Install **Captain of Industry 0.8.7d** on the host PC. The server uses your installed game files; they are not included in the download.
-2. Download [CoI-Server-Manager-0.1.0-alpha.5-win-x64.zip](https://github.com/nebula-codes/coi-dedicated/releases/download/v0.1.0-alpha.5/CoI-Server-Manager-0.1.0-alpha.5-win-x64.zip) and extract it completely to a writable folder.
-3. Run **Start Server Manager.cmd**. The release includes its .NET runtime; no .NET SDK or separate runtime installation is required.
+1. Install **Captain of Industry 0.8.7d** on a Windows x64 host. Start Steam and sign into an account that owns the game. The host uses the installed game files and their Steam libraries.
+2. Use a source checkout containing the startup correction and the **.NET 10 SDK**, or a later server release whose notes explicitly include that correction. The published alpha.5 server ZIP is affected and must not be used. Check the [validation ledger](server-startup-validation.md) before testing an island.
+3. With all profiles stopped, rebuild the source checkout using `.\scripts\build.ps1`, then run **Server Manager.cmd**. Reopening an old dashboard does not replace its host binary. A corrected packaged release would use **Start Server Manager.cmd**; this document does not announce such a release.
 4. Open the dashboard at **http://127.0.0.1:28560** if the browser does not open automatically.
 5. In **Settings**, confirm the installed game directory, map, ports, and autosave interval. Choose a name for the island and save the settings.
-6. Click **Start** and wait for **Running**. A first island load prepares the world before accepting players.
+6. Click **Start** and wait for **Running**. The server validates Steam before creating or loading an island, then prepares the world before accepting players.
 
-The launcher looks for Steam installations. If discovery fails, set the game directory in the dashboard. Each PC running the game client needs the same release's client ZIP, the exact matching game assemblies, and a matching DLC configuration. The current validation used the base game; other mods and DLC combinations remain unverified.
+The launcher looks for Steam installations. If discovery fails, set the game directory in the dashboard. Each PC running the game client needs matching game assemblies and DLC configuration. This startup correction retains compatibility revision 5 and requires no change to the alpha.5 or alpha.5.1 clients. The current validation used the base game; other mods and DLC combinations remain unverified.
+
+Startup calls the installed game's unchanged Facepunch `SteamClient.Init` implementation and checks `SteamClient.IsValid` and `SteamApps.IsSubscribed`. Only successful real validation allows world initialization. An unsupported platform, missing Steam library, or failed validation stops startup before loading the island. Keep Steam running; an open CoI game window is unnecessary. If validation fails, confirm the owning account is signed in and verify the installed game files through Steam, then inspect the server log. Linux containers do not currently provide this validated startup path.
 
 The populated **New Haven** profile is the default. Map and starting-factory settings affect a new island only. An existing `island.save` is resumed when the server starts.
 
@@ -59,6 +63,6 @@ Use a separate test island for this release. Full gameplay coverage, long-runnin
 
 ## Updating and reporting problems
 
-Stop all profiles, take an offline backup of the data directory, and keep the previous release before replacing program files. Closing the browser leaves the manager running; after all profiles show **Stopped**, end that package's `CoiDedicated.Manager.exe` process in Windows Task Manager before replacing its binaries. Update server and clients together. Game assembly fingerprints are checked at connection time; a Steam update can make the current pair incompatible.
+Stop all profiles, take an offline backup of the data directory, and keep the previous release before replacing program files. Closing the browser leaves the manager running; after all profiles show **Stopped**, end that package's `CoiDedicated.Manager.exe` process in Windows Task Manager before replacing its binaries. Follow each release's compatibility requirements; the current server startup correction does not require an alpha.5/alpha.5.1 client update. Game assembly fingerprints are checked at connection time; a Steam update can make the current pair incompatible.
 
 For an [issue report](https://github.com/nebula-codes/coi-dedicated/issues), include the release tag, CoI version, Windows version, steps to reproduce, and a short relevant log excerpt. Remove personal paths and addresses as appropriate. **Never attach `join.key`, `control.key`, or an entire data directory.** Review a save before sharing it with anyone.
