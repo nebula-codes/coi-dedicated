@@ -40,7 +40,7 @@ jobs:
           ARCHIVE="CoI-Dedicated-Server-$VERSION-linux-x64.zip"
           RELEASE_URL="https://github.com/$GITHUB_REPOSITORY/releases/download/v$VERSION"
           curl --fail --show-error --location --retry 3 "$RELEASE_URL/SHA256SUMS-linux.txt" -o checksums.txt
-          SHA="$(awk -v file="$ARCHIVE" '$2 == file {print $1}' checksums.txt)"
+          SHA="$(awk -v file="$ARCHIVE" '{ sub(/\r$/, "", $0) } $2 == file {print $1}' checksums.txt)"
           if [[ ! "$SHA" =~ ^[a-fA-F0-9]{64}$ ]]; then echo 'Missing or ambiguous Linux archive checksum'; exit 1; fi
           printf 'VERSION=%s\nSERVER_ARCHIVE_SHA256=%s\nSERVER_ARCHIVE_URL=%s/%s\n' "$VERSION" "$SHA" "$RELEASE_URL" "$ARCHIVE" >> "$GITHUB_ENV"
       - name: Build from the checksum-pinned distributable
