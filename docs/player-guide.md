@@ -5,7 +5,7 @@ This **alpha** connects Captain of Industry to this project's dedicated server. 
 ## What you need
 
 - Windows x64 and your own installed copy of **Captain of Industry 0.8.7d**.
-- The **client ZIP from the same release** as the server. The game assemblies must match exactly. Keep the host and players on the same DLC configuration; other mods and DLC combinations have not been validated.
+- A compatible client ZIP: **alpha.5.1 client with alpha.5 server** is supported, as is the original alpha.5 client. The game assemblies must match exactly. Keep the host and players on the same DLC configuration; other mods and DLC combinations have not been validated.
 - The host's address, player port (normally **28551**), and a private copy of their **join.key** file.
 
 Download the matching Windows client ZIP from [GitHub Releases](https://github.com/nebula-codes/coi-dedicated/releases). You do not need the source archive, a .NET SDK, or the server-manager package to play.
@@ -40,7 +40,7 @@ Set a distinct player name in **F8 before joining** so others recognize you. **S
 
 The inspector's add/remove truck controls include assigning trucks to a tree harvester. Normal, Shift/Ctrl batch, and Alt zone selection use the game's native assignment commands.
 
-Shared speeds **1×–4×** are supported; higher speeds are rejected. Some specialized placement settings and detail controls remain unsupported and explain their rejection. Install the matching alpha.5 client and server together; compatibility revision 5 cannot join older releases.
+Shared speeds **1×–4×** are supported; higher speeds are rejected. Some specialized placement settings and detail controls remain unsupported and explain their rejection. Compatibility revision 5 cannot join older server releases. The alpha.5.1 client restores movement interpolation and can be installed independently without restarting an alpha.5 server.
 
 If the connection drops or a simulation/state check fails, the client freezes its island and attempts a fresh server snapshot. Automatic reconnect is enabled by default and makes at most three attempts, with 2, 5, and 15 second retry delays. A brief successful join does not reset that limit; one healthy minute does. F8 lets you disable recovery or cancel a pending retry. Manual disconnect does not reconnect automatically. Unity scene transitions still require an in-game check; if recovery fails, return to the main menu and join manually.
 

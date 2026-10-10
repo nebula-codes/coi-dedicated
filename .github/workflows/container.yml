@@ -20,6 +20,8 @@ concurrency:
 
 jobs:
   publish:
+    # Client-only hotfixes keep using the existing server image.
+    if: github.event_name != 'release' || contains(github.event.release.assets.*.name, 'SHA256SUMS-linux.txt')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:

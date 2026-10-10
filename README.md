@@ -10,11 +10,11 @@ Alpha.5 expands native building batches, roads, logistics, inspector controls, t
 
 ## Download the alpha
 
-Get the ready-to-run Windows packages from [GitHub Releases](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.5). Everyone needs their own matching copy of Captain of Industry. The player package requires no SDK; the server-manager package includes its .NET runtime.
+Get the [alpha.5.1 client hotfix](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.5.1) and [alpha.5 server packages](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.5). The client hotfix restores visual interpolation between simulation updates and works with the existing alpha.5 server. Everyone needs their own matching copy of Captain of Industry. The player package requires no SDK; the server-manager package includes its .NET runtime.
 
 | Package | Start here |
 | --- | --- |
-| `CoI-Multiplayer-Client-0.1.0-alpha.5-win-x64.zip` | Extract, close the game, run **Install Client.cmd**. Follow the [player guide](docs/player-guide.md). |
+| `CoI-Multiplayer-Client-0.1.0-alpha.5.1-win-x64.zip` | Extract, close the game, run **Install Client.cmd**. Follow the [player guide](docs/player-guide.md). |
 | `CoI-Server-Manager-0.1.0-alpha.5-win-x64.zip` | Extract and run **Start Server Manager.cmd**. Follow the [hosting guide](docs/hosting-guide.md). |
 
 Use these for experimental sessions. Specialized gameplay variants remain unsupported; checkpoints cover selected state, and long-session/full-state determinism is not proven. Back up islands you care about. Share the player `join.key` privately; never publish keys, your saves, or the game installation.
@@ -25,7 +25,7 @@ For release changes and tested behavior, see the [alpha.5 release notes](docs/re
 
 For a Linux x86-64 PC or NAS, use the [Docker / Portainer guide](docs/docker-portainer.md) and [Portainer stack](compose.portainer.yml). The container resumes its island from a persistent volume, saves on normal container shutdown, and publishes only the gameplay port. You supply a read-only copy of your matching game installation. The image contains no game binaries or player keys.
 
-Portainer provides container start/stop/restart and logs. The existing Windows browser dashboard remains a separate deployment. The Docker server and Windows client must both use `0.1.0-alpha.5`; the same gameplay limitations apply.
+Portainer provides container start/stop/restart and logs. The existing Windows browser dashboard remains a separate deployment. The Docker server uses `0.1.0-alpha.5` and accepts both the alpha.5 and alpha.5.1 Windows clients; the same gameplay limitations apply.
 
 ## Server manager from source
 

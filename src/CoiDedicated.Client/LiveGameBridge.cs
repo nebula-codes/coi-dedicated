@@ -39,6 +39,10 @@ internal sealed class LiveGameBridge : IDisposable
     private readonly object runner;
     private readonly InputScheduler scheduler;
     private readonly SimLoopEvents simulation;
+    private readonly NativeRenderClock renderClock;
+    private readonly Func<Fix64> gameDuration;
+    private readonly Func<Fix64> gameDurationSinceLoad;
+    private readonly Func<Fix64> wallTimeSinceLoad;
     private readonly Lyst<IInputCommand> mainCommands;
     private readonly Dictionary<ulong, (IInputCommand Command, byte[] Payload)> pending = new Dictionary<ulong, (IInputCommand, byte[])>();
     private readonly HashSet<IInputCommand> admitted = new HashSet<IInputCommand>();
@@ -63,6 +67,7 @@ internal sealed class LiveGameBridge : IDisposable
     {
         harmony.Patch(UpdateMethod, prefix: new HarmonyMethod(typeof(LiveGameBridge), nameof(UpdatePrefix)));
         harmony.Patch(InputMethod, prefix: new HarmonyMethod(typeof(LiveGameBridge), nameof(InputPrefix)));
+        harmony.Patch(RenderMethod, prefix: new HarmonyMethod(typeof(LiveGameBridge), nameof(RenderPrefix)));
         harmony.Patch(AccessTools.Method(typeof(InputScheduler), "CollectCommands"),
             prefix: new HarmonyMethod(typeof(LiveGameBridge), nameof(CollectPrefix)));
     }
@@ -82,6 +87,11 @@ internal sealed class LiveGameBridge : IDisposable
         mainCommands = (Lyst<IInputCommand>)MainCommandsField.GetValue(scheduler);
         RunnerType.GetProperty("RunSimulationInBackgroundThread")!.SetValue(runner, false);
         RunnerType.GetProperty("ExtraSimUpdateMs")!.SetValue(runner, Fix32.Zero);
+        gameDuration = BindClock("GameDurationMs");
+        gameDurationSinceLoad = BindClock("GameDurationSinceLoadMs");
+        wallTimeSinceLoad = BindClock("WallTimeSinceLoadMs");
+        renderClock = new NativeRenderClock((GameTime)TimeField.GetValue(runner));
+        renderClock.CaptureSync(gameDuration(), gameDurationSinceLoad());
         simulation.SetSimSpeed(1);
         DeterministicSimulation.Configure(simulation);
         if (CurrentStep != session.SnapshotStep)
@@ -138,6 +148,7 @@ internal sealed class LiveGameBridge : IDisposable
         allowTick = true;
         try { UpdateMethod.Invoke(runner, new object[] { 100.ToFix32() }); }
         finally { allowTick = false; admitted.Clear(); }
+        renderClock.CaptureSync(gameDuration(), gameDurationSinceLoad());
         if (CurrentStep != tick.AfterStep)
         {
             RecoveryRequested = true;
@@ -280,9 +291,7 @@ internal sealed class LiveGameBridge : IDisposable
     {
         try
         {
-            var time = (GameTime)TimeField.GetValue(runner);
-            time.UpdateForSync(delta.ToFloat(), simulation.IsSimPaused, simulation.SimStepsPerUpdate, simulation.SimSpeedMult, simulation.SimSpeedMult,
-                CurrentStep, simulation.StepsSinceLoad.Value, 100.ToFix32());
+            renderClock.Render(delta, wallTimeSinceLoad(), IsFrozen);
             InputMethod.Invoke(runner, null);
             CaptureCommands();
             RenderMethod.Invoke(runner, null);
@@ -300,6 +309,14 @@ internal sealed class LiveGameBridge : IDisposable
 
     private static bool InputPrefix(object __instance) => Current == null
         || !ReferenceEquals(Current.runner, __instance) || !Current.allowTick;
+
+    // Replay performs native sync/after-sync work to refresh renderer endpoints,
+    // but only the real render frame should animate them (not a 100 ms packet).
+    private static bool RenderPrefix(object __instance) => Current == null
+        || !ReferenceEquals(Current.runner, __instance) || !Current.allowTick;
+
+    private Func<Fix64> BindClock(string name) => (Func<Fix64>)Delegate.CreateDelegate(
+        typeof(Func<Fix64>), runner, RunnerType.GetProperty(name)!.GetGetMethod()!);
 
     private static void CollectPrefix(InputScheduler __instance)
     {
