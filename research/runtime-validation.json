@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-10",
+  "game_version": "0.8.7d",
+  "platform": "Windows x64",
+  "server_runtime": ".NET 10",
+  "client_runtime": "Unity 6000.3.19 Mono with BepInEx 5.4.23.5",
+  "final_installed_payload_smoke": {
+    "compatibility_revision": "dedicated-prototype-2",
+    "snapshot_step": 1699,
+    "final_step": 1719,
+    "authoritative_ticks": 20,
+    "normal_client_exit": true,
+    "evidence_directory": ".work/client-runtime/final-smoke"
+  },
+  "game_assembly_sha256": {
+    "Mafi.dll": "0adf871a75600bc21859b49d09943d087b10e3fd7a108c90a3381c5ae7f8da26",
+    "Mafi.Core.dll": "6292fe37a4132a60b2dadae16d65e76af2a80b5ed251e10a75ad19676c8f187c",
+    "Mafi.Base.dll": "6584e0c734170564d1d2632f64a2c25a782da2c16fe2888e131fe885f0a01bea"
+  },
+  "verified": [
+    "Standalone populated island creation, unattended simulation, atomic save, clean shutdown and restart without Unity",
+    "Fresh-process canonicalization preserves selected world/terrain measurements across subsequent reloads and another 300 updates",
+    "Two headless peers receive the same commands and ticks, place a normal machine, and reach matching selected world/terrain state",
+    "Headless peer disconnect and reconnect from the persistent server snapshot",
+    "Two actual Unity client runs of 100 authoritative ticks, one observing remote machine placement",
+    "Actual Unity InputScheduler pipeline: four accepted pause/resume commands and two rejected actions complete and sync their original command objects without disconnecting",
+    "Exact game-binary fingerprints are checked by the client before snapshot loading",
+    "Incorrect join key and repeated request ID rejected; typed rejected proposal does not stop subsequent ticks",
+    "Snapshot digest validation, corrupt snapshot rejection, bounded framing and malformed command rejection",
+    "Pinned snapshot generation and cancellation/disconnection disposal regression tests"
+  ],
+  "building_placement_probe": {
+    "prototypes": ["SmokeStack", "StorageUnit", "StorageLoose", "StorageFluid"],
+    "entities_before": 16,
+    "entities_after": 20,
+    "all_created_as_normal_unconstructed_entities": true,
+    "locked_storage_rejected": true,
+    "storage_research_unlocked_only_in_isolated_fixture_for_positive_tests": true,
+    "evidence": ".work/storage-placement-live-result.json"
+  },
+  "second_unity_run": {
+    "snapshot_step": 1562,
+    "final_step": 1612,
+    "ticks": 100,
+    "input_checks_passed": 6,
+    "game_duration_fixed_raw": 168715878400,
+    "entity_count": 17,
+    "population": 90,
+    "terrain_fingerprint": "v1 0A74BF507F1013C2",
+    "evidence_directory": ".work/client-runtime/unity-command-test-step1612"
+  },
+  "raw_state_comparison": {
+    "server_and_rejoined_headless_peer_match": true,
+    "step": 1612,
+    "length": 3942661,
+    "sha256": "cc2554e7c95008f37aa3c4e76a53077bd10c7b845d46df6be4b9f7e4ca034370",
+    "original_live_peer_and_unity_full_equality_proven": false,
+    "findings": [
+      "Raw diagnostics require normal BeforeSave preparation; SaveGameRaw does not perform it itself.",
+      "The original live peer's first residual difference is a lazy pathfinding initialized-chunk cache. The game's documented behavior permits non-deterministic cache queries, but not all remaining differences have been shown harmless.",
+      "Mono versus .NET type identities explain most raw length differences. Normalizing these names alone does not make the streams equal."
+    ],
+    "detailed_local_evidence": ".work/raw-probe-data/findings.json"
+  },
+  "not_established": [
+    "Complete deterministic equivalence across .NET and Unity Mono",
+    "Full gameplay command coverage",
+    "Manual visual/UI usability and smoothness",
+    "Long-duration or large-island multiplayer stability",
+    "Compatibility with other game versions, mods, DLCs or Linux",
+    "Automatic state checksum exchange or resynchronization"
+  ]
+}

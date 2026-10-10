@@ -129,4 +129,3 @@ pwsh -File scripts/test-client-installer.ps1
 The release builder writes isolated build outputs, two versioned ZIPs, and `SHA256SUMS.txt` under `artifacts/releases`. The player ZIP includes verified BepInEx files, required notices, and the unmodified Doorstop source archive. The manager ZIP includes its runtime; neither package includes personal server data.
 
 See [world lifecycle](docs/server-lifecycle.md), [client notes](src/CoiDedicated.Client/README.md), [runtime validation and limits](research/runtime-validation.json), and [research evidence](research/coi-dedicated-feasibility.json). Decompiled local evidence, game saves, credentials, downloaded dependencies, logs, and build outputs are excluded from version control.
-

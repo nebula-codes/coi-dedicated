@@ -1,0 +1,68 @@
+{
+  "target": "Captain of Industry dedicated server",
+  "investigated_at": "2026-10-10",
+  "installed_version": "0.8.7d",
+  "game_directory": "<COI_GAME_DIR>",
+  "requested_behavior": [
+    "Separate unattended server process",
+    "No player required to host an active client",
+    "Players connect and disconnect independently over LAN or internet",
+    "Server owns persistent island state"
+  ],
+  "status": "Working experimental Windows dedicated server and matching installed game client. Two actual Unity runs completed 100 authoritative ticks, including remote building placement and original local input command completion. Gameplay coverage and full cross-runtime determinism remain incomplete. See runtime-validation.json for current evidence.",
+  "observations": [
+    {
+      "finding": "REA members/CIL inspection confirms GameBuilder and GameRunner are internal types. BuildLoadedGameTimeSliced requires mod, prototype and dependency callbacks; its Boolean enables assertions, not headless mode. GameRunner.Update and Initialize invoke renderer-related events as well as simulation work.",
+      "evidence_id": "ev_cb31256a17e7aa0c2f288c7d04f14cd0ad55d8e912af05dbe82939ae043742e8",
+      "retained_summary": "<LOCAL_RESEARCH_TEMP>/rea-steam-captain-bootstrap-signatures.json (private local evidence; not distributed)",
+      "implication": "A standalone host needs access to internal bootstrap types, correct dependency callbacks and verified behavior of frontend events with UI services absent.",
+      "limitation": "Static CIL and documentation only; partial coverage includes malformed custom attributes and unsupported generic signatures."
+    },
+    {
+      "finding": "Mafi.Core has direct references to netstandard and Mafi; Mafi.Base has direct references to netstandard, Mafi.Core and Mafi. Neither declares a direct Unity assembly reference.",
+      "evidence_ids": ["ev_7353df8a5972b4cb7bb4b4398d64f95fc78ee0bdfb816007f99ac176fd26625b", "ev_ce9c38223d9c26747dbf9d3ab0724840d9c51cf16aa6d888e213943c6dfcf510"],
+      "limitation": "Metadata coverage is partial due to five rejected custom-attribute rows per assembly; dependency declarations do not establish successful independent execution."
+    },
+    {
+      "finding": "Shipped Mafi.Core.xml documents loading a saved game through GameBuilder, main-thread GameRunner initialization and termination, simulation updates, and a two-stage save snapshot/write API.",
+      "source": "<COI_GAME_DIR>/Captain of Industry_Data/Managed/Mafi.Core.xml",
+      "line_anchors": [9682, 10012, 23021],
+      "kind": "Shipped API documentation; runtime behavior untested"
+    },
+    {
+      "finding": "IMod.IsUiOnly documentation excludes UI mods from headless determinism-verification games and says non-UI mods should not use Unity.",
+      "source": "<COI_GAME_DIR>/Captain of Industry_Data/Managed/Mafi.Core.xml",
+      "line_anchor": 12637,
+      "limitation": "A headless testing path is not a network server or a demonstrated production bootstrap."
+    },
+    {
+      "finding": "Mafi declares two ntdll.dll P/Invoke imports, wine_get_version and wine_get_host_version.",
+      "evidence_id": "ev_553b5a8f4d9ab39499552fa8b1458299b70bb53669ff20e3d304af37b50826bb",
+      "limitation": "Call guards and reachability have not been checked; this neither proves nor rules out Linux operation."
+    },
+    {
+      "finding": "CoopFoundry currently states no dedicated server yet. Its page does not provide source or a public protocol specification.",
+      "source": "https://coigame.com/Mod/1220/CoopFoundry-Multiplayer",
+      "kind": "Author documentation; compatibility with a custom server is unknown"
+    }
+  ],
+  "runtime_observations": [
+    "The installed Mafi, Mafi.Core and Mafi.Base assemblies successfully bootstrap a populated New Haven island under .NET 10 without Unity assemblies or a graphics device.",
+    "The game working directory and built-in non-UI dependency services are required. No integrity validation was bypassed or patched.",
+    "Fresh-island save/load performs one-time terrain recovery and prop pruning. Separate-process save/load preparation produces stable subsequent selected terrain and world reports, including after 300 more simulation steps.",
+    "The server advances with no players, performs atomic autosaves with one backup, and supports authenticated pause/resume/save/snapshot/shutdown administration.",
+    "Two separate headless peers loaded step 857, replayed at least 100 authoritative ticks including one peer's pause/resume/pause commands, and reached step 907 with equal selected world and terrain reports. A subsequent reconnect also matched.",
+    "Two additional peers at paused step 907 produced identical complete SaveGameRaw byte streams: 3894086 bytes, SHA256 c2519b43788548dab306f66fa4f14ca16c885eb28b8522e4e4333890a9f76466. This comparison was peer-to-peer, not yet against the server's raw state.",
+    "The actual Unity 6000.3.19 player loads BepInEx and the client plugin, authenticates and loads the server snapshot. A narrowly scoped serializer type-resolution mapping solves System.Private.CoreLib generic argument identities on Mono without altering snapshot bytes or checksums. Two runs completed 100 authoritative ticks; the second passed six input-command completion/rejection checks.",
+    "A bounded normal-machine placement codec passed a live probe: SmokeStack at (448,1405,2) created an unconstructed entity using normal placement validation and construction costs. No privileged construction flags are accepted from the network."
+  ],
+  "engineering_inference": "Independent persistent hosting and real-client joining are demonstrated. This establishes an experimental foundation; complete gameplay coverage, cross-runtime determinism and long-running synchronization remain substantial work.",
+  "decisive_next_test": "Extend simulation-visible state comparisons across longer sessions, more player actions and larger islands; separate lazy caches and runtime metadata from meaningful state before implementing state-checksum recovery.",
+  "unresolved": [
+    "Cross-runtime type identity and determinism between .NET 10 and Unity Mono",
+    "Linux feasibility; implemented and tested platform is Windows",
+    "Full gameplay command coverage and automatic desynchronization recovery",
+    "Manual UI and reconnect usability beyond automated join/exit and headless reconnect tests",
+    "Long-running stability and safe persistence"
+  ]
+}

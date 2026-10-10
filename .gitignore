@@ -1,0 +1,11 @@
+.tools/
+.work/
+**/bin/
+**/obj/
+server-data/
+manager-data/
+*.user
+*.key
+*.save
+*.save.previous
+artifacts/

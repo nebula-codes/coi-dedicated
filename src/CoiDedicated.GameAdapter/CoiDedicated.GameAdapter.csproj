@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GameDir Condition="'$(GameDir)' == ''">F:\SteamLibrary\steamapps\common\Captain of Industry</GameDir>
+    <GameManagedDir>$(GameDir)\Captain of Industry_Data\Managed</GameManagedDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Tests/**/*.cs" />
+    <ProjectReference Include="../CoiDedicated.Protocol/CoiDedicated.Protocol.csproj" />
+    <Reference Include="Mafi"><HintPath>$(GameManagedDir)\Mafi.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Mafi.Core"><HintPath>$(GameManagedDir)\Mafi.Core.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Mafi.Base"><HintPath>$(GameManagedDir)\Mafi.Base.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+  <Target Name="CheckGamePath" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(GameManagedDir)\Mafi.Core.dll')" Text="Set GameDir to your Captain of Industry installation: dotnet build -p:GameDir=..." />
+  </Target>
+</Project>

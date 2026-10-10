@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UseAppHost>false</UseAppHost>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GameDir Condition="'$(GameDir)' == ''">F:\SteamLibrary\steamapps\common\Captain of Industry</GameDir>
+    <GameManagedDir>$(GameDir)\Captain of Industry_Data\Managed</GameManagedDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../CoiDedicated/CoiDedicated.csproj" />
+    <ProjectReference Include="../CoiDedicated.GameAdapter/CoiDedicated.GameAdapter.csproj" />
+    <Reference Include="Mafi"><HintPath>$(GameManagedDir)\Mafi.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Mafi.Core"><HintPath>$(GameManagedDir)\Mafi.Core.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Mafi.Base"><HintPath>$(GameManagedDir)\Mafi.Base.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

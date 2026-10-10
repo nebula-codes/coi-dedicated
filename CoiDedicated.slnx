@@ -1,0 +1,20 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CoiDedicated/CoiDedicated.csproj" />
+    <Project Path="src/CoiDedicated.Client/CoiDedicated.Client.csproj" />
+    <Project Path="src/CoiDedicated.Control/CoiDedicated.Control.csproj" />
+    <Project Path="src/CoiDedicated.GameAdapter/CoiDedicated.GameAdapter.csproj" />
+    <Project Path="src/CoiDedicated.Peer/CoiDedicated.Peer.csproj" />
+    <Project Path="src/CoiDedicated.Protocol/CoiDedicated.Protocol.csproj" />
+    <Project Path="src/CoiDedicated.Manager/CoiDedicated.Manager.csproj" />
+    <Project Path="src/CoiDedicated.Manager.Core/CoiDedicated.Manager.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CoiDedicated.ControlServer.Tests/CoiDedicated.ControlServer.Tests.csproj" />
+    <Project Path="tests/CoiDedicated.Protocol.Tests/CoiDedicated.Protocol.Tests.csproj" />
+    <Project Path="tests/CoiDedicated.Manager.Tests/CoiDedicated.Manager.Tests.csproj" />
+    <Project Path="tests/CoiDedicated.Manager.Storage.Tests/CoiDedicated.Manager.Storage.Tests.csproj" />
+    <Project Path="src/CoiDedicated.Client/Tests/SnapshotSmoke.csproj" />
+    <Project Path="src/CoiDedicated.GameAdapter/Tests/CoiDedicated.GameAdapter.Tests.csproj" />
+  </Folder>
+</Solution>
