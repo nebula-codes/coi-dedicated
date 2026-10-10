@@ -24,28 +24,40 @@ internal sealed class GameSessionServer : IDisposable
         public void Dispose() => Take()?.Dispose();
     }
 
-    private sealed class Peer(TcpClient client, string name, CancellationToken cancellation)
+    private sealed record PresenceSample(PlayerPresenceState State, long ReceivedAt);
+
+    private sealed class Peer(TcpClient client, string name, uint id, CancellationToken cancellation)
     {
         public readonly TcpClient Client = client;
         public readonly string Name = name;
+        public readonly uint Id = id;
         public readonly CancellationTokenSource Stop = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
         public readonly Channel<ProtocolFrame> Outbound = Channel.CreateBounded<ProtocolFrame>(128);
+        public readonly Channel<bool> SendSignal = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) { FullMode = BoundedChannelFullMode.DropWrite });
+        public ProtocolFrame? LatestPresence;
+        public PresenceSample? Presence;
+        public long LastPresenceAt;
         public readonly TaskCompletionSource<SnapshotLease> Snapshot = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public SnapshotLease? PendingSnapshot;
         public readonly Queue<(ulong Sequence, int Step)> AwaitingAck = new();
+        public readonly Queue<(ulong Sequence, int Step, byte[] Digest)> AwaitingCheckpoint = new();
         public DateTime JoinedAt = DateTime.UtcNow;
-        public bool Active;
+        public volatile bool Active;
         public int SnapshotStep;
         public int QueuedCommands;
+        public bool NeedsInitialCheckpoint = true;
+        public bool RecoveryPending;
         public bool Closed => Stop.IsCancellationRequested;
-        public void Close() { Stop.Cancel(); Client.Dispose(); Outbound.Writer.TryComplete(); PendingSnapshot?.Dispose(); }
-        public void Send(ProtocolFrame frame) { if (!Outbound.Writer.TryWrite(frame)) Close(); }
+        public void Close() { Stop.Cancel(); Client.Dispose(); Outbound.Writer.TryComplete(); SendSignal.Writer.TryComplete(); PendingSnapshot?.Dispose(); }
+        public void Send(ProtocolFrame frame) { if (!Outbound.Writer.TryWrite(frame)) Close(); else SendSignal.Writer.TryWrite(true); }
+        public void SendPresence(ProtocolFrame frame) { Interlocked.Exchange(ref LatestPresence, frame); SendSignal.Writer.TryWrite(true); }
     }
 
     private abstract record Incoming(Peer Peer);
     private sealed record Join(Peer Peer) : Incoming(Peer);
     private sealed record Ready(Peer Peer, int Step) : Incoming(Peer);
     private sealed record Acknowledgment(Peer Peer, ulong Sequence, int Step) : Incoming(Peer);
+    private sealed record Checkpoint(Peer Peer, ulong Sequence, int Step, byte[] Digest) : Incoming(Peer);
     private sealed record Proposal(Peer Peer, ulong Id, byte[] Payload) : Incoming(Peer);
     private readonly TcpListener listener;
     private readonly CancellationTokenSource lifetime = new();
@@ -58,6 +70,7 @@ internal sealed class GameSessionServer : IDisposable
     private readonly Queue<IInputCommand> systemCommands = new(); // main thread only
     private readonly string secret;
     private readonly Task acceptTask;
+    private readonly Task presenceTask;
     private ulong sequence;
     private int connectionId;
     private readonly string Build;
@@ -69,11 +82,12 @@ internal sealed class GameSessionServer : IDisposable
         listener = new TcpListener(IPAddress.Parse(address), port);
         listener.Start(8);
         acceptTask = AcceptLoop();
+        presenceTask = PresenceLoop();
         Console.WriteLine($"[game] Authenticated gameplay endpoint: {listener.LocalEndpoint}");
     }
 
     public int PlayerCount => worldPeers.Count(p => p.Active && !p.Closed);
-    public bool WaitingForJoin => worldPeers.Any(p => !p.Active && !p.Closed);
+    public bool WaitingForJoin => worldPeers.Any(p => !p.Active && !p.Closed && !p.RecoveryPending);
     public void ScheduleSystem(IInputCommand command) => systemCommands.Enqueue(command);
 
     public void Pump(Func<string> save, ISimLoopEvents simulation)
@@ -84,7 +98,7 @@ internal sealed class GameSessionServer : IDisposable
         for (int i = 0; i < 64 && incoming.Reader.TryRead(out Incoming? message); i++)
         {
             Peer peer = message.Peer;
-            if (peer.Closed) continue;
+            if (peer.Closed || peer.RecoveryPending) continue;
             switch (message)
             {
                 case Join:
@@ -113,6 +127,21 @@ internal sealed class GameSessionServer : IDisposable
                         peer.Close();
                     }
                     break;
+                case Checkpoint check:
+                    if (!peer.Active || !peer.AwaitingCheckpoint.TryDequeue(out var expectedCheck)
+                        || expectedCheck.Sequence != check.Sequence || expectedCheck.Step != check.Step)
+                    { peer.Close(); break; }
+                    if (!CryptographicOperations.FixedTimeEquals(expectedCheck.Digest, check.Digest))
+                    {
+                        Console.WriteLine($"[game] {peer.Name}: gameplay checkpoint mismatch at sequence {check.Sequence}, step {check.Step}; clean snapshot reload required.");
+                        peer.Active = false;
+                        peer.RecoveryPending = true;
+                        using var reason = new PayloadWriter();
+                        reason.WriteString($"Gameplay checkpoint mismatch at step {check.Step}. Reload a fresh server snapshot.", 1024);
+                        peer.Send(reason.ToFrame(MessageKind.ResyncRequired));
+                    }
+                    else Console.WriteLine($"[game] {peer.Name}: gameplay checkpoint verified at sequence {check.Sequence}, step {check.Step}.");
+                    break;
                 case Proposal proposal:
                     if (!peer.Active) peer.Close();
                     else proposals.Enqueue(proposal);
@@ -124,21 +153,35 @@ internal sealed class GameSessionServer : IDisposable
     public List<AdmittedCommand> Admit(DependencyResolver resolver)
     {
         var result = new List<AdmittedCommand>();
-        for (int i = 0; i < 64 && systemCommands.TryDequeue(out IInputCommand? command); i++)
+        // Leave room for frame metadata and future protocol fields. Deferred proposals stay in order.
+        const int payloadBudget = 512 * 1024;
+        int payloadBytes = 0;
+        for (int i = 0; i < 64 && systemCommands.TryPeek(out IInputCommand? command); i++)
         {
             if (!GameCommandCodec.TryEncode(command, out byte[] payload, out string reason)) throw new InvalidOperationException(reason);
+            if (payloadBytes + payload.Length + 80 > payloadBudget) break;
+            systemCommands.Dequeue();
+            payloadBytes += payload.Length + 80;
             result.Add(new(0, "server", payload, command));
         }
-        for (int i = 0; i < 32 && proposals.TryDequeue(out Proposal? proposal); i++)
+        for (int i = 0; i < 32 && proposals.TryPeek(out Proposal? proposal); i++)
         {
+            bool isolated = !proposal.Peer.Closed && GameCommandCodec.RequiresIsolatedTick(proposal.Payload);
+            // Preserve proposal order and validate index mutations against the post-tick world.
+            // A second removal must not be decoded against the first removal's old list length.
+            if (isolated && result.Count != 0) break;
+            if (!proposal.Peer.Closed && payloadBytes + proposal.Payload.Length + 80 > payloadBudget) break;
+            proposals.Dequeue();
             Interlocked.Decrement(ref proposal.Peer.QueuedCommands);
             if (proposal.Peer.Closed) continue;
             try
             {
                 IInputCommand command = GameCommandCodec.Decode(proposal.Payload, resolver);
-                if (command is GameSpeedChangeCmd speed && speed.NewSpeedMultiplier != 1)
-                    throw new ProtocolException("This prototype synchronizes at speed 1 only.");
+                if (command is GameSpeedChangeCmd speed && !DeterministicSimulation.IsSupportedSpeed(speed.NewSpeedMultiplier))
+                    throw new ProtocolException($"Multiplayer supports game speeds 1 through {DeterministicSimulation.MaxSpeed}.");
                 result.Add(new(proposal.Id, proposal.Peer.Name, proposal.Payload, command));
+                payloadBytes += proposal.Payload.Length + 80;
+                if (isolated) break;
             }
             catch (Exception error) when (error is ProtocolException or ArgumentException or InvalidOperationException)
             {
@@ -152,13 +195,19 @@ internal sealed class GameSessionServer : IDisposable
         return result;
     }
 
-    public void Publish(int beforeStep, int afterStep, bool beforePaused, IReadOnlyList<AdmittedCommand> commands)
+    public void Publish(int beforeStep, int afterStep, bool beforePaused, int beforeSpeed, IReadOnlyList<AdmittedCommand> commands, DependencyResolver resolver)
     {
+        ++sequence;
+        Peer[] active = worldPeers.Where(p => p.Active && !p.Closed).ToArray();
+        // Keep advancing the authoritative sequence while nobody is connected, but
+        // avoid building network frames or scanning the entire terrain for nobody.
+        if (active.Length == 0) return;
         using var payload = new PayloadWriter();
-        payload.WriteUInt64(++sequence);
+        payload.WriteUInt64(sequence);
         payload.WriteInt32(beforeStep);
         payload.WriteInt32(afterStep);
         payload.WriteBoolean(beforePaused);
+        payload.WriteInt32(beforeSpeed);
         payload.WriteUInt16(checked((ushort)commands.Count));
         foreach (AdmittedCommand command in commands)
         {
@@ -166,11 +215,20 @@ internal sealed class GameSessionServer : IDisposable
             payload.WriteString(command.Author, 64);
             payload.WriteBytes(command.Payload, 65536);
         }
+        bool checkpointDue = sequence % GameplayCheckpoint.IntervalTicks == 0 || active.Any(p => p.NeedsInitialCheckpoint);
+        byte[]? digest = checkpointDue ? GameplayCheckpoint.Compute(resolver) : null;
+        payload.WriteBytes(digest ?? Array.Empty<byte>(), 32);
         ProtocolFrame frame = payload.ToFrame(MessageKind.Tick);
-        foreach (Peer peer in worldPeers.Where(p => p.Active && !p.Closed))
+        foreach (Peer peer in active)
         {
             if (peer.AwaitingAck.Count >= 100) { peer.Close(); continue; }
             peer.AwaitingAck.Enqueue((sequence, afterStep));
+            if (digest != null)
+            {
+                if (peer.AwaitingCheckpoint.Count >= 3) { peer.Close(); continue; }
+                peer.NeedsInitialCheckpoint = false;
+                peer.AwaitingCheckpoint.Enqueue((sequence, afterStep, digest));
+            }
             peer.Send(frame);
         }
     }
@@ -184,7 +242,7 @@ internal sealed class GameSessionServer : IDisposable
                 TcpClient client = await listener.AcceptTcpClientAsync(lifetime.Token);
                 if (!slots.Wait(0)) { client.Dispose(); continue; }
                 int id = Interlocked.Increment(ref connectionId);
-                Task task = Handle(client);
+                Task task = Handle(client, checked((uint)id));
                 connections[id] = task;
                 _ = task.ContinueWith(_ => { connections.TryRemove(id, out var ignored); slots.Release(); }, TaskScheduler.Default);
             }
@@ -193,7 +251,7 @@ internal sealed class GameSessionServer : IDisposable
         catch (SocketException) when (lifetime.IsCancellationRequested) { }
     }
 
-    private async Task Handle(TcpClient client)
+    private async Task Handle(TcpClient client, uint peerId)
     {
         Peer? peer = null;
         using (client)
@@ -220,7 +278,7 @@ internal sealed class GameSessionServer : IDisposable
                 if (name.Length == 0 || name == "server" || name.Any(c => !(char.IsAsciiLetterOrDigit(c) || c is '_' or '-')))
                     throw new ProtocolException("Player name must use ASCII letters, digits, underscore or hyphen, and cannot be 'server'.");
                 if (!ControlAuthentication.VerifyProof(secret, nonce, name, proof)) throw new ProtocolException("Authentication failed.");
-                peer = new Peer(client, name, lifetime.Token);
+                peer = new Peer(client, name, peerId, lifetime.Token);
                 if (!peers.TryAdd(name, peer)) throw new ProtocolException("Player name already connected.");
                 using (var welcome = new PayloadWriter())
                 {
@@ -256,6 +314,21 @@ internal sealed class GameSessionServer : IDisposable
                             reader.EnsureEnd();
                             Enqueue(new Acknowledgment(peer, seq, step));
                         }
+                        else if (frame.Kind == MessageKind.CheckpointReply)
+                        {
+                            var check = CheckpointCodec.Decode(frame.Payload);
+                            Enqueue(new Checkpoint(peer, check.Sequence, check.Step, check.Digest));
+                        }
+                        else if (frame.Kind == MessageKind.PresenceUpdate)
+                        {
+                            // Purely cosmetic state bypasses the simulation/input queue entirely.
+                            // Drop over-rate updates before decoding; no backlog and no identity supplied by the player.
+                            if (frame.Payload.Length > PresenceCodec.MaxUpdateBytes) throw new ProtocolException("Presence update too large.");
+                            long now = Environment.TickCount64;
+                            if (now - peer.LastPresenceAt < PresenceCodec.IntervalMilliseconds) continue;
+                            peer.LastPresenceAt = now;
+                            Interlocked.Exchange(ref peer.Presence, new PresenceSample(PresenceCodec.DecodeUpdate(frame.Payload), now));
+                        }
                         else if (frame.Kind == MessageKind.Command)
                         {
                             ulong id = reader.ReadUInt64();
@@ -266,7 +339,7 @@ internal sealed class GameSessionServer : IDisposable
                             if (Interlocked.Increment(ref peer.QueuedCommands) > 64) throw new ProtocolException("Too many queued commands.");
                             Enqueue(new Proposal(peer, id, payload));
                         }
-                        else throw new ProtocolException("Expected tick acknowledgment or game command.");
+                        else throw new ProtocolException("Expected tick acknowledgment, game command, or presence update.");
                     }
                 }
                 finally { peer.Close(); try { await sender; } catch (Exception) { } }
@@ -296,10 +369,49 @@ internal sealed class GameSessionServer : IDisposable
     {
         try
         {
-            await foreach (ProtocolFrame frame in peer.Outbound.Reader.ReadAllAsync(peer.Stop.Token))
-                await FrameCodec.WriteAsync(stream, frame, peer.Stop.Token);
+            await foreach (bool signal in peer.SendSignal.Reader.ReadAllAsync(peer.Stop.Token))
+            {
+                // Authoritative traffic has priority. At most one cosmetic frame is retained.
+                while (peer.Outbound.Reader.TryRead(out ProtocolFrame? frame))
+                {
+                    await FrameCodec.WriteAsync(stream, frame, peer.Stop.Token);
+                    if (frame.Kind == MessageKind.ResyncRequired)
+                    {
+                        // Finish the reply before closing the receive half. An immediate close
+                        // with a concurrent ACK can reset TCP and hide the recovery explanation.
+                        peer.Client.Client.Shutdown(SocketShutdown.Send);
+                        await Task.Delay(2000, peer.Stop.Token);
+                        return;
+                    }
+                }
+                ProtocolFrame? presence = Interlocked.Exchange(ref peer.LatestPresence, null);
+                if (presence != null) await FrameCodec.WriteAsync(stream, presence, peer.Stop.Token);
+            }
         }
         finally { peer.Close(); }
+    }
+
+    private async Task PresenceLoop()
+    {
+        try
+        {
+            using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(PresenceCodec.IntervalMilliseconds));
+            while (await timer.WaitForNextTickAsync(lifetime.Token))
+            {
+                long now = Environment.TickCount64;
+                Peer[] active = peers.Values.Where(p => p.Active && !p.Closed).ToArray();
+                var entries = new List<PlayerPresenceEntry>(PresenceCodec.MaxPeers);
+                foreach (Peer peer in active)
+                {
+                    PresenceSample? sample = Volatile.Read(ref peer.Presence);
+                    if (sample != null && sample.State.Visible && now - sample.ReceivedAt <= PresenceCodec.ExpiryMilliseconds)
+                        entries.Add(new PlayerPresenceEntry { PeerId = peer.Id, Name = peer.Name, State = sample.State });
+                }
+                ProtocolFrame snapshot = PresenceCodec.EncodeSnapshot(entries);
+                foreach (Peer peer in active) peer.SendPresence(snapshot);
+            }
+        }
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
     }
 
     private static async Task Welcome(Stream stream, byte stage, PayloadWriter writer, CancellationToken cancellation)
@@ -339,6 +451,6 @@ internal sealed class GameSessionServer : IDisposable
         lifetime.Cancel();
         listener.Stop();
         foreach (Peer peer in peers.Values) peer.Close();
-        try { Task.WhenAll(connections.Values.Append(acceptTask)).Wait(TimeSpan.FromSeconds(3)); } catch { }
+        try { Task.WhenAll(connections.Values.Append(acceptTask).Append(presenceTask)).Wait(TimeSpan.FromSeconds(3)); } catch { }
     }
 }

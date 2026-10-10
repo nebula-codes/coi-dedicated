@@ -26,6 +26,7 @@ internal static class DedicatedService
         Console.WriteLine($"[server] Player join key file: {joinSecretPath}");
         Console.WriteLine("[server] Simulation continues with no players. Joining briefly holds ticks while the snapshot loads. Ctrl+C or SIGTERM saves and stops.");
         resolver.Resolve<SimLoopEvents>().SetSimSpeed(1);
+        DeterministicSimulation.Configure(resolver.Resolve<SimLoopEvents>());
         runner.GetType().GetProperty("ExtraSimUpdateMs")!.SetValue(runner, Fix32.Zero);
         game.ScheduleSystem(new SetSimPauseStateCmd(false));
         var clock = Stopwatch.StartNew();
@@ -55,9 +56,10 @@ internal static class DedicatedService
             {
                 int beforeStep = simulation.CurrentStep.Value;
                 bool beforePaused = simulation.IsSimPaused;
+                int beforeSpeed = simulation.SimSpeedMult;
                 var commands = game.Admit(resolver);
                 update.Invoke(runner, new object[] { 100.ToFix32() });
-                game.Publish(beforeStep, simulation.CurrentStep.Value, beforePaused, commands);
+                game.Publish(beforeStep, simulation.CurrentStep.Value, beforePaused, beforeSpeed, commands, resolver);
                 // Do not accumulate an unbounded catch-up backlog on a slow island.
                 nextTick = Math.Max(nextTick + 100, clock.ElapsedMilliseconds);
             }

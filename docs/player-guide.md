@@ -8,7 +8,7 @@ This **alpha** connects Captain of Industry to this project's dedicated server. 
 - The **client ZIP from the same release** as the server. The game assemblies must match exactly. Keep the host and players on the same DLC configuration; other mods and DLC combinations have not been validated.
 - The host's address, player port (normally **28551**), and a private copy of their **join.key** file.
 
-Download [CoI-Multiplayer-Client-0.1.0-alpha.1-win-x64.zip](https://github.com/nebula-codes/coi-dedicated/releases/download/v0.1.0-alpha.1/CoI-Multiplayer-Client-0.1.0-alpha.1-win-x64.zip). You do not need the source archive, a .NET SDK, or the server-manager package to play.
+Download the matching Windows client ZIP from [GitHub Releases](https://github.com/nebula-codes/coi-dedicated/releases). You do not need the source archive, a .NET SDK, or the server-manager package to play.
 
 ## Install
 
@@ -30,13 +30,21 @@ Use the host computer's LAN address on the same network, or its VPN address for 
 
 The server pauses briefly while a joining player loads a verified snapshot. It continues running after everyone disconnects. The F8 snapshot-preview option is separate from live play and is not needed to join.
 
+Joining remembers the server address, port, player name, and full join-key path across game and PC restarts. Keep the key file at that location. Only its path is saved in `BepInEx/config/local.coi.dedicated.client.cfg`; key contents are never copied into that configuration. A paused control snapshot does not replace the remembered player key.
+
 ## What works in this alpha
 
-Supported actions include pause, speed 1, ordinary machine and standard-storage placement, construction priority, machine recipe toggles, ordinary deconstruction, and construction toggles. The game's normal research, placement, and construction-cost rules still apply.
+Alpha.5 expands normal building batches, early-game actions, storage controls, research, terrain designations, roads, logistics zones, and many other controls. See [the full coverage ledger](multiplayer-coverage.md) for tested paths and remaining restrictions.
 
-Roads, belts, pipes, other transports, terrain editing, batch placement, many specialized buildings, and broader management actions are **not supported**. Unsupported inputs are rejected. Long sessions, large islands, and complete cross-runtime synchronization remain unproven. Use a separate test island and keep backups.
+Set a distinct player name in **F8 before joining** so others recognize you. **Show and share player cameras and building footprint previews** controls the indicators. Colored labels mark other players' camera focus, including off-screen directions; rectangles approximate their views. Outlines show active building, transport, rail, paving, and terrain-tool previews. They are advisory outlines, not construction commands or textured ghosts. Visual placement still needs broader two-player in-game checks.
 
-If the connection drops or the client detects a tick mismatch, its island freezes. Return to the main menu and join again. Automatic state repair and resynchronization are not implemented.
+The inspector's add/remove truck controls include assigning trucks to a tree harvester. Normal, Shift/Ctrl batch, and Alt zone selection use the game's native assignment commands.
+
+Shared speeds **1×–4×** are supported; higher speeds are rejected. Some specialized placement settings and detail controls remain unsupported and explain their rejection. Install the matching alpha.5 client and server together; compatibility revision 5 cannot join older releases.
+
+If the connection drops or a simulation/state check fails, the client freezes its island and attempts a fresh server snapshot. Automatic reconnect is enabled by default and makes at most three attempts, with 2, 5, and 15 second retry delays. A brief successful join does not reset that limit; one healthy minute does. F8 lets you disable recovery or cancel a pending retry. Manual disconnect does not reconnect automatically. Unity scene transitions still require an in-game check; if recovery fails, return to the main menu and join manually.
+
+State checkpoints compare selected gameplay fields. They detect several kinds of divergence, but do not prove every private game field is identical. These are still experimental sessions; see [synchronization details](https://github.com/nebula-codes/coi-dedicated/blob/main/docs/synchronization.md).
 
 ## Troubleshooting and removal
 
@@ -46,8 +54,8 @@ If the connection drops or the client detects a tick mismatch, its island freeze
 | Connection fails | Check the host address, player port, host running status, and Windows Firewall. Another computer cannot reach the host through `127.0.0.1`. |
 | Authentication fails | Ask the host for the current `join.key`; use its local file path. Do not use `control.key`. |
 | Compatibility mismatch | Match the server's exact game build and client release. A Steam update may change the game assemblies even if the displayed version looks similar. |
-| An action is rejected | It may be unsupported, research-locked, or invalid under the normal game rules. See [command coverage](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.1/src/CoiDedicated.GameAdapter/README.md). |
-| Island freezes after joining | Return to the main menu and reconnect. Give the host the error and relevant log excerpt. |
+| An action is rejected | It may be unsupported, research-locked, or invalid under the normal game rules. See [command coverage](https://github.com/nebula-codes/coi-dedicated/blob/main/docs/multiplayer-coverage.md). |
+| Island freezes after joining | Let automatic reconnect finish, or use F8 to cancel and reconnect manually from the main menu. Give the host the error and relevant log excerpt if it repeats. |
 
 Close the game and run **Uninstall Client.cmd** to remove this dedicated plugin. The uninstaller preserves shared BepInEx files, other plugins, and backups.
 

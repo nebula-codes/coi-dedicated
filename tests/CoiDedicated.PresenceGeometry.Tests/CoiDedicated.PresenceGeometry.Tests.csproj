@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GameDir Condition="'$(GameDir)' == ''">F:\SteamLibrary\steamapps\common\Captain of Industry</GameDir>
+    <GameManagedDir>$(GameDir)\Captain of Industry_Data\Managed</GameManagedDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\src\CoiDedicated.Client\PresenceGeometry.cs" Link="PresenceGeometry.cs" />
+    <Compile Include="..\..\src\CoiDedicated.Client\PresenceToolPreviews.cs" Link="PresenceToolPreviews.cs" />
+    <ProjectReference Include="..\..\src\CoiDedicated.Protocol\CoiDedicated.Protocol.csproj" />
+    <Reference Include="Mafi"><HintPath>$(GameManagedDir)\Mafi.dll</HintPath></Reference>
+    <Reference Include="Mafi.Core"><HintPath>$(GameManagedDir)\Mafi.Core.dll</HintPath></Reference>
+    <Reference Include="Mafi.Unity"><HintPath>$(GameManagedDir)\Mafi.Unity.dll</HintPath></Reference>
+    <Reference Include="Mafi.UnityCore"><HintPath>$(GameManagedDir)\Mafi.UnityCore.dll</HintPath></Reference>
+    <Reference Include="UnityEngine"><HintPath>$(GameManagedDir)\UnityEngine.dll</HintPath></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(GameManagedDir)\UnityEngine.CoreModule.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>

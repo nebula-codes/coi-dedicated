@@ -23,16 +23,29 @@ namespace CoiDedicated.GameAdapter
     /// thread immediately before scheduling, so world references are checked against the current island.
     /// No game serializer, network-supplied CLR type, reflection, or object graph deserializer is used.
     /// </summary>
-    public static class GameCommandCodec
+    public static partial class GameCommandCodec
     {
         public const ushort Version = 1;
-        public const int MaxCommandBytes = 512;
+        public const int MaxCommandBytes = 64 * 1024;
         public const int MaxProtoIdBytes = 256;
         public const int MinGameSpeed = 1;
         public const int MaxGameSpeed = 20;
         public const int MinConstructionPriority = 0;
         public const int MaxConstructionPriority = 14;
         private static readonly UTF8Encoding Utf8 = new UTF8Encoding(false, true);
+
+        /// <summary>
+        /// Native schedule insert/remove and root-priority handlers omit some execution-time
+        /// index/membership checks. Admit these alone so validation sees preceding tick results.
+        /// This is admission policy only; the full decoder still validates every accepted payload.
+        /// </summary>
+        public static bool RequiresIsolatedTick(ReadOnlyMemory<byte> payload)
+        {
+            var bytes=payload.Span;
+            if(bytes.Length<4 || (bytes[0]|bytes[1]<<8)!=Version)return false;
+            int kind=bytes[2]|bytes[3]<<8;
+            return kind==217 || kind==227 || kind==241 || kind==252;
+        }
 
         public static bool TryEncode(IInputCommand command, out byte[] payload) => TryEncode(command, out payload, out _);
 
@@ -47,7 +60,11 @@ namespace CoiDedicated.GameAdapter
                 writer.WriteUInt16(Version);
                 // Exact types prevent subclasses with different execution behavior being silently truncated.
                 Type type = command.GetType();
-                if (type == typeof(SetSimPauseStateCmd))
+                if (type == typeof(BatchCreateStaticEntitiesCmd))
+                {
+                    EncodeBuildingBatch((BatchCreateStaticEntitiesCmd)command, writer);
+                }
+                else if (type == typeof(SetSimPauseStateCmd))
                 {
                     var value = (SetSimPauseStateCmd)command;
                     writer.WriteUInt16((ushort)GameCommandKind.SetSimPauseState);
@@ -111,6 +128,19 @@ namespace CoiDedicated.GameAdapter
                     writer.WriteInt32(value.Transform.Rotation.AngleIndex);
                     writer.WriteBoolean(value.Transform.IsReflected);
                 }
+                else if (TryEncodeEarlyGame(command, writer)) { }
+                else if (TryEncodeTransport(command, writer)) { }
+                else if (TryEncodeResearchAndTrade(command, writer)) { }
+                else if (TryEncodeScalarCommand(command, writer)) { }
+                else if (TryEncodeTerrain(command, writer)) { }
+                else if (TryEncodeWorkArea(command, writer)) { }
+                else if (TryEncodeManagement(command, writer)) { }
+                else if (TryEncodeSurfaces(command, writer)) { }
+                else if (TryEncodeLogistics(command, writer)) { }
+                else if (TryEncodeDetailControls(command, writer)) { }
+                else if (TryEncodeBridges(command, writer)) { }
+                else if (TryEncodeRails(command, writer)) { }
+                else if (TryEncodeTrainControls(command, writer)) { }
                 else
                 {
                     reason = $"Command '{type.Name}' is not supported by dedicated multiplayer yet.";
@@ -135,12 +165,18 @@ namespace CoiDedicated.GameAdapter
         public static IInputCommand Decode(ReadOnlyMemory<byte> payload, DependencyResolver resolver)
         {
             if (resolver == null) throw new ArgumentNullException(nameof(resolver));
-            if (payload.Length > MaxCommandBytes) throw new ProtocolException("Game command exceeds 512 bytes.");
+            if (payload.Length > MaxCommandBytes) throw new ProtocolException("Game command exceeds its configured byte limit.");
             var reader = new PayloadReader(payload);
             if (reader.ReadUInt16() != Version) throw new ProtocolException("Unsupported game-command schema version.");
             var kind = (GameCommandKind)reader.ReadUInt16();
             switch (kind)
             {
+                case GameCommandKind.BatchCreateBuildings:
+                    return DecodeBuildingBatch(reader, resolver);
+                case (GameCommandKind)400:
+                    return DecodeBlueprintBatch(reader, resolver);
+                case GameCommandKind.BuildTransport:
+                    return DecodeTransport(reader, resolver);
                 case GameCommandKind.SetSimPauseState:
                 {
                     bool isPaused = reader.ReadBoolean();
@@ -206,27 +242,28 @@ namespace CoiDedicated.GameAdapter
                     ValidateProtoId(id);
                     var position = new Tile3i(x, y, z);
                     ValidatePlacementScalars(position, rotation);
-                    var protoId = new StaticEntityProto.ID(id);
-                    if (!resolver.Resolve<ProtosDb>().TryGetProto<LayoutEntityProto>(protoId, out LayoutEntityProto building)
-                        || !IsSupportedBuildingType(building.GetType()))
-                        throw new ProtocolException($"Prototype '{id}' is not an ordinary machine or supported storage building.");
-                    if (!building.IsUnlockedAndAvailable || building.CannotBeBuiltByPlayer || building.IsAutoBuiltByParent)
-                        throw new ProtocolException($"Building '{id}' is not available for player construction.");
-                    if (reflected && building.CannotBeReflected)
-                        throw new ProtocolException($"Building '{id}' cannot be reflected.");
                     var transform = new TileTransform(position, new Rotation90(rotation), reflected);
-                    TerrainManager terrain = resolver.Resolve<TerrainManager>();
-                    var bounds = building.Layout.GetBoundingBox2i(transform);
-                    if (bounds.Origin.X < terrain.MinOnLimits.X || bounds.Origin.Y < terrain.MinOnLimits.Y
-                        || bounds.PlusXyCoordExcl.X > terrain.MaxOnLimitsExcl.X
-                        || bounds.PlusXyCoordExcl.Y > terrain.MaxOnLimitsExcl.Y)
-                        throw new ProtocolException("Building footprint extends outside the playable map.");
+                    var protoId = new StaticEntityProto.ID(id);
+                    RequireBuildableLayout(resolver, id, transform);
                     // Occupancy, support, terrain, and construction remain subject to
                     // the game's normal command processor at its ordered execution tick.
                     // Neither privileged flag exists in the wire format.
                     return new CreateStaticEntityCmd(protoId, transform, isFree: false, allowValidationSuppression: false);
                 }
                 default:
+                    IInputCommand? extra = DecodeEarlyGame(kind, reader, resolver);
+                    extra ??= DecodeResearchAndTrade(kind, reader, resolver);
+                    extra ??= DecodeScalarCommand(kind, reader, resolver);
+                    extra ??= DecodeTerrain(kind, reader, resolver);
+                    extra ??= DecodeWorkArea(kind, reader, resolver);
+                    extra ??= DecodeManagement(kind, reader, resolver);
+                    extra ??= DecodeSurfaces(kind, reader, resolver);
+                    extra ??= DecodeLogistics(kind, reader, resolver);
+                    extra ??= DecodeDetailControls(kind, reader, resolver);
+                    extra ??= DecodeBridges(kind, reader, resolver);
+                    extra ??= DecodeRails(kind, reader, resolver);
+                    extra ??= DecodeTrainControls(kind, reader, resolver);
+                    if (extra != null) return extra;
                     throw new ProtocolException($"Unsupported game-command kind {(ushort)kind}.");
             }
         }
@@ -237,9 +274,6 @@ namespace CoiDedicated.GameAdapter
                 throw new ProtocolException($"Entity {id.Value} does not exist or has the wrong type for this command.");
             return entity;
         }
-
-        private static bool IsSupportedBuildingType(Type type) => type == typeof(MachineProto)
-            || type == typeof(UnitStorageProto) || type == typeof(LooseStorageProto) || type == typeof(FluidStorageProto);
 
         private static EntityId ReadEntityId(PayloadReader reader)
         {

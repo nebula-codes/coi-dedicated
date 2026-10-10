@@ -1,7 +1,7 @@
 #Requires -Version 7.0
 [CmdletBinding()]
 param(
-    [ValidatePattern('^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$')][string]$Version = '0.1.0-alpha.2',
+    [ValidatePattern('^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$')][string]$Version = '0.1.0-alpha.5',
     [string]$GameDir = $env:COI_GAME_DIR,
     [string]$OutputDirectory
 )
@@ -60,7 +60,7 @@ Copy-Item -LiteralPath (Join-Path $repository 'docs/docker-portainer.md') -Desti
     frameworkDependent = $true
     requiredRuntime = 'Microsoft.NETCore.App 10.0'
     gameVersion = '0.8.7d'
-    compatibility = 'dedicated-prototype-2 / cmd1'
+    compatibility = 'dedicated-prototype-5 / cmd1'
     experimental = $true
     gameFilesIncluded = $false
 } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'release.json') -Encoding utf8NoBOM

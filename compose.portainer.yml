@@ -1,6 +1,6 @@
 services:
   coi-server:
-    image: ghcr.io/nebula-codes/coi-dedicated:0.1.0-alpha.2
+    image: ghcr.io/nebula-codes/coi-dedicated:0.1.0-alpha.5
     platform: linux/amd64
     init: true
     restart: unless-stopped

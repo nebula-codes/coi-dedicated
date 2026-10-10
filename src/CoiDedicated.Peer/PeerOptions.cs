@@ -15,6 +15,9 @@ internal sealed class PeerOptions
     public int TimeoutSeconds { get; private set; } = 180;
     public int? PlaceMachineAt { get; private set; }
     public int? RejectedSpeedAt { get; private set; }
+    public bool CorruptCheckpoint { get; private set; }
+    public int? DivergeAt { get; private set; }
+    public Dictionary<int, int> SpeedProposals { get; } = new();
     public bool Help { get; private set; }
     public Dictionary<int, bool> PauseProposals { get; } = new();
 
@@ -25,7 +28,8 @@ internal sealed class PeerOptions
         {
             string option = args[index];
             if (option is "--help" or "-h") { options.Help = true; continue; }
-            if (option is not ("--host" or "--port" or "--name" or "--game-dir" or "--data-dir" or "--secret-file" or "--ticks" or "--timeout-seconds" or "--pause-at" or "--resume-at" or "--place-machine-at" or "--reject-speed-at"))
+            if (option == "--corrupt-checkpoint") { options.CorruptCheckpoint = true; continue; }
+            if (option is not ("--host" or "--port" or "--name" or "--game-dir" or "--data-dir" or "--secret-file" or "--ticks" or "--timeout-seconds" or "--pause-at" or "--resume-at" or "--place-machine-at" or "--reject-speed-at" or "--speed-at" or "--diverge-at"))
                 throw new ArgumentException($"Unknown peer option: {option}");
             if (++index >= args.Length) throw new ArgumentException($"Missing value for {option}.");
             string value = args[index];
@@ -41,6 +45,12 @@ internal sealed class PeerOptions
                 case "--timeout-seconds": options.TimeoutSeconds = ParseInt(value, 1, 3600, option); break;
                 case "--place-machine-at": options.PlaceMachineAt = ParseInt(value, 1, 100000, option); break;
                 case "--reject-speed-at": options.RejectedSpeedAt = ParseInt(value, 1, 100000, option); break;
+                case "--diverge-at": options.DivergeAt = ParseInt(value, 1, 100000, option); break;
+                case "--speed-at":
+                    string[] parts = value.Split(':');
+                    if (parts.Length != 2 || !options.SpeedProposals.TryAdd(ParseInt(parts[0], 1, 100000, option), ParseInt(parts[1], 1, 4, option)))
+                        throw new ArgumentException("--speed-at requires unique TICK:SPEED (1..4).");
+                    break;
                 case "--pause-at":
                 case "--resume-at":
                     int tick = ParseInt(value, 1, 100000, option);
@@ -69,5 +79,5 @@ internal sealed class PeerOptions
         return parsed;
     }
 
-    public static void PrintHelp() => Console.WriteLine("Headless CoI gameplay peer integration harness\n  --secret-file PATH  Host join.key (required)\n  --host HOST         Default 127.0.0.1\n  --port N            Default 28551\n  --name NAME         Default headless-peer\n  --game-dir PATH     Installed game files\n  --data-dir PATH     Isolated downloads/reports (default peer-data)\n  --ticks N           Receive and verify N ticks (default 100)\n  --pause-at N        Propose pause after local tick N; repeatable\n  --resume-at N       Propose resume after local tick N; repeatable\n  --place-machine-at N  Find and propose one ordinary machine placement\n  --reject-speed-at N  Verify rejection of the unsupported speed-2 policy\n  --timeout-seconds N Overall deadline including load (default 180)");
+    public static void PrintHelp() => Console.WriteLine("Headless CoI gameplay peer integration harness\n  --secret-file PATH  Host join.key (required)\n  --host HOST         Default 127.0.0.1\n  --port N            Default 28551\n  --name NAME         Default headless-peer\n  --game-dir PATH     Installed game files\n  --data-dir PATH     Isolated downloads/reports (default peer-data)\n  --ticks N           Receive and verify N ticks (default 100)\n  --pause-at N        Propose pause after local tick N; repeatable\n  --resume-at N       Propose resume after local tick N; repeatable\n  --place-machine-at N  Find and propose one ordinary machine placement\n  --reject-speed-at N  Verify rejection of speed 5 (multiplayer permits 1..4)\n  --speed-at N:SPEED  Propose speed 1..4 after local tick N; repeatable\n  --diverge-at N      TEST ONLY: mutate one local entity; require resync\n  --corrupt-checkpoint TEST ONLY: corrupt digest; require resync\n  --timeout-seconds N Overall deadline including load (default 180)");
 }

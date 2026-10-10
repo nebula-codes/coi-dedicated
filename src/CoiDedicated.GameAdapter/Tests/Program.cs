@@ -45,6 +45,12 @@ internal static class Tests
             ("Unsupported subclasses and unsafe scalar options rejected", RejectUnsupported),
             ("Entity commands reject missing live entities", RejectMissingEntities),
             ("Building placement rejects malformed transforms before world lookup", RejectMalformedPlacement),
+            ("Batch building placement rejects malformed payloads and privilege flags", BuildingBatchTests.RejectMalformed),
+            ("Research and trade codec validates typed commands and malformed payloads", ResearchAndTradeTests.Run),
+            ("Expanded controls retain field values and reject malformed plans", ExpandedCommandTests.Run),
+            ("Vehicle assignment preserves optional zones and rejects malformed payloads", VehicleAssignmentTests.Run),
+            ("Surface and logistics commands bound plans, enums and precise percentage values", SurfaceAndLogisticsTests.Run),
+            ("Train plans and scheduling reject malformed counts, indices and ID truncation", TrainControlsTests.Run),
             ("Game build identity matches fixed fixture and every DLL affects it", BuildIdentityFixture)
         };
         int failed = 0;
@@ -193,7 +199,7 @@ internal static class Tests
         try
         {
             for (int i = 0; i < names.Length; i++) File.WriteAllText(Path.Combine(directory, names[i]), values[i]);
-            const string expected = "CoI 0.8.7d / dedicated-prototype-2 / cmd1 / 10d29925e454831bda13ad914a68598350c19ad94721b1022dc37c2f956e9454";
+            const string expected = "CoI 0.8.7d / dedicated-prototype-5 / cmd1 / 10d29925e454831bda13ad914a68598350c19ad94721b1022dc37c2f956e9454";
             Check(GameBuildIdentity.Compute(directory) == expected, "Combined identity did not match the independent SHA-256 fixture.");
             Check(System.Text.Encoding.UTF8.GetByteCount(expected) <= 128, "Build identity exceeds handshake limit.");
             for (int i = 0; i < names.Length; i++)

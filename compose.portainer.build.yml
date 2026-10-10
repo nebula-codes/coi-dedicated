@@ -2,9 +2,9 @@
 # This downloads only the checksum-pinned public server package, never /game.
 services:
   coi-server:
-    image: coi-dedicated:0.1.0-alpha.2-local
+    image: coi-dedicated:0.1.0-alpha.5-local
     build:
-      context: https://github.com/nebula-codes/coi-dedicated.git#v0.1.0-alpha.2
+      context: https://github.com/nebula-codes/coi-dedicated.git#v0.1.0-alpha.5
       dockerfile: Dockerfile
     platform: linux/amd64
     init: true

@@ -65,7 +65,7 @@ namespace CoiDedicated.Protocol
             await stream.WriteAsync(frame.Payload, cancellationToken).ConfigureAwait(false);
         }
 
-        internal static bool IsKnownKind(MessageKind kind) => kind >= MessageKind.Hello && kind <= MessageKind.CommandRejected;
+        internal static bool IsKnownKind(MessageKind kind) => kind >= MessageKind.Hello && kind <= MessageKind.ResyncRequired;
 
         internal static void ValidateKindArgument(MessageKind kind)
         {

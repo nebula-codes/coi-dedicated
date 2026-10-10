@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -23,6 +24,8 @@ internal sealed class LiveTick
     internal int BeforeStep;
     internal int AfterStep;
     internal bool Paused;
+    internal int Speed;
+    internal byte[] Checkpoint = Array.Empty<byte>();
     internal LiveCommand[] Commands = Array.Empty<LiveCommand>();
 }
 
@@ -40,12 +43,17 @@ internal sealed class LiveSession : IDisposable
     private NetworkStream? stream;
     private int ready;
     private int queuedSends;
+    private PlayerPresenceEntry[] presence = Array.Empty<PlayerPresenceEntry>();
+    private long presenceReceived;
     private string? failure;
     internal readonly ConcurrentQueue<LiveTick> Ticks = new ConcurrentQueue<LiveTick>();
     internal readonly ConcurrentQueue<LiveRejection> Rejections = new ConcurrentQueue<LiveRejection>();
     internal string Name { get; private set; } = "client-" + Guid.NewGuid().ToString("N").Substring(0, 12);
     internal int SnapshotStep { get; private set; }
     internal string? Failure => Volatile.Read(ref failure);
+    internal bool RecoveryRequired { get; private set; }
+    internal PlayerPresenceEntry[] Presence => (Stopwatch.GetTimestamp() - Interlocked.Read(ref presenceReceived)) / (double)Stopwatch.Frequency * 1000 <= PresenceCodec.ExpiryMilliseconds
+        ? Volatile.Read(ref presence) : Array.Empty<PlayerPresenceEntry>();
 
     internal static async Task<LiveSession> JoinAsync(string host, int port, string keyPath, string output, string expectedBuild, CancellationToken cancellation, string? clientName = null)
     {
@@ -107,6 +115,12 @@ internal sealed class LiveSession : IDisposable
             {
                 ProtocolFrame incoming = await FrameCodec.ReadAsync(stream!, lifetime.Token).ConfigureAwait(false)
                     ?? throw new EndOfStreamException("Dedicated server disconnected.");
+                if (incoming.Kind == MessageKind.PresenceSnapshot)
+                {
+                    Interlocked.Exchange(ref presence, PresenceCodec.DecodeSnapshot(incoming.Payload));
+                    Interlocked.Exchange(ref presenceReceived, Stopwatch.GetTimestamp());
+                    continue;
+                }
                 if (incoming.Kind == MessageKind.CommandRejected)
                 {
                     var errorData = new PayloadReader(incoming.Payload);
@@ -119,21 +133,30 @@ internal sealed class LiveSession : IDisposable
                     continue;
                 }
                 if (incoming.Kind == MessageKind.Error) ThrowServerError(incoming);
+                if (incoming.Kind == MessageKind.ResyncRequired)
+                {
+                    var reason = new PayloadReader(incoming.Payload);
+                    string message = reason.ReadString(1024); reason.EnsureEnd();
+                    RecoveryRequired = true;
+                    throw new ProtocolException(message);
+                }
                 if (incoming.Kind != MessageKind.Tick) throw new ProtocolException("Expected an authoritative Tick.");
                 var data = new PayloadReader(incoming.Payload);
                 var tick = new LiveTick
                 {
                     Sequence = data.ReadUInt64(), BeforeStep = data.ReadInt32(),
-                    AfterStep = data.ReadInt32(), Paused = data.ReadBoolean()
+                    AfterStep = data.ReadInt32(), Paused = data.ReadBoolean(), Speed = data.ReadInt32()
                 };
                 ushort count = data.ReadUInt16();
-                if (count > 128 || tick.BeforeStep < 0 || tick.AfterStep < tick.BeforeStep || tick.AfterStep > tick.BeforeStep + 1)
+                if (count > 128 || tick.BeforeStep < 0 || tick.AfterStep < tick.BeforeStep || (long)tick.AfterStep > (long)tick.BeforeStep + 4 || tick.Speed < 1 || tick.Speed > 4)
                     throw new ProtocolException("Invalid authoritative tick bounds.");
                 if (lastSequence.HasValue && tick.Sequence != lastSequence.Value + 1)
                     throw new ProtocolException("Authoritative tick sequence gap.");
                 tick.Commands = new LiveCommand[count];
                 for (int i = 0; i < count; i++)
                     tick.Commands[i] = new LiveCommand { RequestId = data.ReadUInt64(), Author = data.ReadString(64), Payload = data.ReadBytes(65536) };
+                tick.Checkpoint = data.ReadBytes(32);
+                if (tick.Checkpoint.Length != 0 && tick.Checkpoint.Length != 32) throw new ProtocolException("Invalid checkpoint length.");
                 data.EnsureEnd();
                 if (Ticks.Count >= 128) throw new ProtocolException("Client fell too far behind the server.");
                 Ticks.Enqueue(tick);
@@ -157,6 +180,25 @@ internal sealed class LiveSession : IDisposable
         payload.WriteUInt64(sequence);
         payload.WriteInt32(step);
         QueueSend(payload.ToFrame(MessageKind.Ack));
+    }
+
+    internal void Checkpoint(ulong sequence, int step, byte[] digest) => QueueSend(CheckpointCodec.Encode(sequence, step, digest));
+
+    // A busy writer drops this cosmetic update. Never queue presence behind game input.
+    internal void SendPresence(PlayerPresenceState state)
+    {
+        if (lifetime.IsCancellationRequested || Volatile.Read(ref ready) == 0 || Volatile.Read(ref queuedSends) != 0 || !writer.Wait(0)) return;
+        ProtocolFrame frame;
+        try { frame = PresenceCodec.EncodeUpdate(state); }
+        catch { writer.Release(); throw; }
+        _ = SendPresenceAsync(frame);
+    }
+
+    private async Task SendPresenceAsync(ProtocolFrame frame)
+    {
+        try { await FrameCodec.WriteAsync(stream!, frame, lifetime.Token).ConfigureAwait(false); }
+        catch (Exception error) { RecordFailure(error); }
+        finally { writer.Release(); }
     }
 
     private void QueueSend(ProtocolFrame frame)

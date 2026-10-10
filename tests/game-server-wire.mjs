@@ -1,4 +1,5 @@
-// Run against an explicitly started local test server; no game assemblies or npm dependencies.
+// Run against an explicitly started isolated local test server; no game assemblies or npm dependencies.
+// This is a transport fixture: echoing checkpoint bytes does NOT validate simulation state.
 import assert from 'node:assert/strict';
 import net from 'node:net';
 import { createHash, createHmac } from 'node:crypto';
@@ -16,7 +17,10 @@ const frame = (kind, payload = Buffer.alloc(0)) => Buffer.concat([u32(payload.le
 const reader = b => {
   let p = 0;
   return { int: () => { const v = b.readInt32LE(p); p += 4; return v; },
+    short: () => { const v = b.readUInt16LE(p); p += 2; return v; },
+    bool: () => { const v = b[p++]; assert(v === 0 || v === 1); return !!v; },
     long: () => { const v = b.readBigUInt64LE(p); p += 8; return v; },
+    end: () => assert.equal(p, b.length),
     blob: () => { const n = b.readUInt32LE(p); p += 4; assert(n <= b.length - p); const v = b.subarray(p, p + n); p += n; return v; } };
 };
 
@@ -71,16 +75,24 @@ try {
   console.log('PASS authenticated snapshot length and SHA-256');
   peer.send(8, u32(snapshotStep));
   // Valid schema, intentionally unsupported speed. No game state should change.
-  peer.send(6, Buffer.concat([u64(1), blob(Buffer.concat([u16(1), u16(2), u32(2)]))]));
+  peer.send(6, Buffer.concat([u64(1), blob(Buffer.concat([u16(1), u16(2), u32(5)]))]));
   let rejected = false, ticks = 0;
   while (!rejected || ticks < 3) {
     const next = await peer.read(); assert(next);
     if (next.kind === 11) {
       const rejectedCommand = reader(next.payload);
       assert.equal(rejectedCommand.long(), 1n);
-      assert.match(rejectedCommand.blob().toString(), /speed 1/); rejected = true;
+      assert.match(rejectedCommand.blob().toString(), /speeds 1 through 4/); rejectedCommand.end(); rejected = true;
+    } else if (next.kind === 13) {
+      // Cosmetic presence snapshots are independent of authoritative commands.
+      continue;
     } else {
-      assert.equal(next.kind, 7); const t = reader(next.payload), sequence = t.long(); t.int(); const after = t.int();
+      assert.equal(next.kind, 7); const t = reader(next.payload), sequence = t.long(), before = t.int(), after = t.int();
+      t.bool(); const speed = t.int(); assert(speed >= 1 && speed <= 4); assert(after >= before && after <= before + 4);
+      const count = t.short(); assert(count <= 128);
+      for (let i = 0; i < count; i++) { t.long(); t.blob(); t.blob(); }
+      const checkpoint = t.blob(); assert(checkpoint.length === 0 || checkpoint.length === 32); t.end();
+      if (checkpoint.length) peer.send(14, Buffer.concat([u64(sequence), u32(after), blob(checkpoint)]));
       peer.send(8, Buffer.concat([u64(sequence), u32(after)])); ticks++;
     }
   }

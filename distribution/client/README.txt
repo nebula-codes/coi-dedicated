@@ -12,6 +12,8 @@ INSTALL
 4. Launch the game normally. At its main menu, press F8.
 5. Enter the host's server address, game port (usually 28551), and the full
    path to the join.key file the host supplied privately. Join the island.
+   The address, port, player name, and key path are remembered after restarting.
+   Keep the key file in that location; the configuration stores only its path.
 
 Use the game version and client release required by the server host. The
 dedicated multiplayer project is experimental and does not support every game

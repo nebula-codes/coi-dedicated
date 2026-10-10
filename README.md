@@ -4,24 +4,28 @@ An independent dedicated server that runs Captain of Industry's island simulatio
 
 **Development prototype for CoI 0.8.7d.** This is a custom server/client pair, not a CoopFoundry server. Multiplayer command coverage and runtime validation are still being expanded. Game updates, other mods, and DLC combinations require compatibility testing. The repository contains integration code, not redistributed game binaries.
 
+## Gameplay and synchronization
+
+Alpha.5 expands native building batches, roads, logistics, inspector controls, truck assignment, and camera/tool-preview sharing. It adds deterministic pacing at 1–4×, periodic selected-state checkpoints, bounded automatic snapshot recovery, and remembered connection details. It uses compatibility revision 5; all clients and servers must update together. See [the coverage and test ledger](docs/multiplayer-coverage.md) for implemented paths, evidence, and remaining work. Full gameplay parity is still incomplete.
+
 ## Download the alpha
 
-Get the ready-to-run Windows packages from [GitHub Releases](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.1). Everyone needs their own matching copy of Captain of Industry. The player package requires no SDK; the server-manager package includes its .NET runtime.
+Get the ready-to-run Windows packages from [GitHub Releases](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.5). Everyone needs their own matching copy of Captain of Industry. The player package requires no SDK; the server-manager package includes its .NET runtime.
 
 | Package | Start here |
 | --- | --- |
-| `CoI-Multiplayer-Client-0.1.0-alpha.1-win-x64.zip` | Extract, close the game, run **Install Client.cmd**. Follow the [player guide](docs/player-guide.md). |
-| `CoI-Server-Manager-0.1.0-alpha.1-win-x64.zip` | Extract and run **Start Server Manager.cmd**. Follow the [hosting guide](docs/hosting-guide.md). |
+| `CoI-Multiplayer-Client-0.1.0-alpha.5-win-x64.zip` | Extract, close the game, run **Install Client.cmd**. Follow the [player guide](docs/player-guide.md). |
+| `CoI-Server-Manager-0.1.0-alpha.5-win-x64.zip` | Extract and run **Start Server Manager.cmd**. Follow the [hosting guide](docs/hosting-guide.md). |
 
-Use these for experimental sessions: roads, transports, terrain editing, and other commands remain unsupported. Full-state determinism, long sessions, and automatic resynchronization are not proven. Back up islands you care about. Share the player `join.key` privately; never publish keys, your saves, or the game installation.
+Use these for experimental sessions. Specialized gameplay variants remain unsupported; checkpoints cover selected state, and long-session/full-state determinism is not proven. Back up islands you care about. Share the player `join.key` privately; never publish keys, your saves, or the game installation.
 
-For release changes and tested behavior, see the [alpha release notes](docs/releases/v0.1.0-alpha.1.md). Source builds are described below. This project's source is MIT-licensed; bundled dependency notices are described in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+For release changes and tested behavior, see the [alpha.5 release notes](docs/releases/v0.1.0-alpha.5.md). Source builds are described below. This project's source is MIT-licensed; bundled dependency notices are described in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Docker and Portainer
 
 For a Linux x86-64 PC or NAS, use the [Docker / Portainer guide](docs/docker-portainer.md) and [Portainer stack](compose.portainer.yml). The container resumes its island from a persistent volume, saves on normal container shutdown, and publishes only the gameplay port. You supply a read-only copy of your matching game installation. The image contains no game binaries or player keys.
 
-Portainer provides container start/stop/restart and logs. The existing Windows browser dashboard remains a separate deployment. The Docker server uses the same multiplayer protocol as the `0.1.0-alpha.1` Windows client; its alpha gameplay limitations still apply.
+Portainer provides container start/stop/restart and logs. The existing Windows browser dashboard remains a separate deployment. The Docker server and Windows client must both use `0.1.0-alpha.5`; the same gameplay limitations apply.
 
 ## Server manager from source
 
@@ -70,6 +74,8 @@ Close the game, then install the built plugin:
 
 Start Captain of Industry normally. At the main menu, press **F8**, enter the server address, port **28551**, and the path to a local copy of `join.key`, then choose **Join live dedicated island**. Each join downloads a verified snapshot into its own save folder. The server briefly holds ticks while the joining client loads, with a 60-second limit, then resumes. It continues running after players disconnect.
 
+Live join remembers the address, port, name, and full key path across game and PC restarts. Key contents are not stored in configuration. F8 also controls camera/preview sharing and automatic reconnect.
+
 The client uses BepInEx 5.4.23.5 and Harmony. Installation records file hashes and backs up replaced files belonging to this plugin under `artifacts`. It stops before writing if an existing third-party loader conflicts. No original game assemblies are overwritten. To disable the client plugin, close the game and move its `BepInEx\plugins\CoiDedicated` directory outside the game directory.
 
 ## Admin controls
@@ -89,12 +95,12 @@ Use `-KeyFile` when the server has a custom data directory. Use `-HostName` and 
 - Headless creation, simulation, save/load, autosave, exclusive data-directory locking, and clean shutdown.
 - Separate player/admin credentials, bounded network messages, snapshot length and SHA-256 validation, command ordering, and tick acknowledgments.
 - Server-owned tick order; clients propose allowlisted actions and replay admitted commands. Unsupported actions are blocked locally. A disconnected or out-of-step game client freezes its island.
-- Initial command set: pause, normal speed, ordinary machine and storage placement, construction priority, machine recipe enable/disable, ordinary deconstruction, and construction toggles. See [command coverage](src/CoiDedicated.GameAdapter/README.md) for the current list and validation rules.
+- Expanded commands include native building batches, truck assignment, roads, transports, terrain, storage, research, logistics zones, and inspector settings. See [command coverage](docs/multiplayer-coverage.md) for supported variants and validation rules.
 - Independent headless peer harness for actual game-simulation integration tests. Two peers have replayed shared ticks and commands, with matching selected world/terrain reports; disconnect/rejoin was also checked.
 - Two actual Unity client runs completed 100 authoritative ticks. A remote machine placement appeared in the client's simulation, and six input completion/rejection checks passed through its original command objects.
 - The final installed payload completed another real-game join and 20 ticks after the storage extension and compatibility revision update.
 
-These checks do not establish complete determinism or long-term stability. Full gameplay actions, large-island soak tests, recovery from state divergence, and unattended service installation remain separate work. The current server handles one island and runs at speed 1. A full-state checksum exchange and automatic resynchronization are not yet implemented.
+Revision 5 adds two native peers replaying 1,200 updates each through speeds 1–4, six matching state checkpoints per peer, matching final raw serialization, deliberate divergence detection, and fresh-snapshot rejoin. These checks do not establish complete determinism or long-term stability. Checkpoints cover selected fields and can cause a brief terrain-scan pause; see [synchronization measurements and limits](docs/synchronization.md). The new Unity overlays and automatic scene recovery still need an in-game check. Large-island soak tests and unattended Windows service installation remain work.
 
 ## Code and checks
 

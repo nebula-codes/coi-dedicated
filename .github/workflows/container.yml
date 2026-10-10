@@ -4,6 +4,11 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      version:
+        description: Published release version, without the v prefix
+        required: true
+        default: 0.1.0-alpha.5
 
 permissions:
   contents: read
@@ -19,12 +24,31 @@ jobs:
     timeout-minutes: 20
     env:
       IMAGE: ghcr.io/nebula-codes/coi-dedicated
-      VERSION: 0.1.0-alpha.2
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
+      REQUESTED_VERSION: ${{ inputs.version }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Resolve the matching release and archive checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${RELEASE_TAG#v}"
+          if [ -z "$VERSION" ]; then VERSION="$REQUESTED_VERSION"; fi
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$ ]]; then
+            echo 'Invalid release version'; exit 1
+          fi
+          ARCHIVE="CoI-Dedicated-Server-$VERSION-linux-x64.zip"
+          RELEASE_URL="https://github.com/$GITHUB_REPOSITORY/releases/download/v$VERSION"
+          curl --fail --show-error --location --retry 3 "$RELEASE_URL/SHA256SUMS-linux.txt" -o checksums.txt
+          SHA="$(awk -v file="$ARCHIVE" '$2 == file {print $1}' checksums.txt)"
+          if [[ ! "$SHA" =~ ^[a-fA-F0-9]{64}$ ]]; then echo 'Missing or ambiguous Linux archive checksum'; exit 1; fi
+          printf 'VERSION=%s\nSERVER_ARCHIVE_SHA256=%s\nSERVER_ARCHIVE_URL=%s/%s\n' "$VERSION" "$SHA" "$RELEASE_URL" "$ARCHIVE" >> "$GITHUB_ENV"
       - name: Build from the checksum-pinned distributable
         run: |
           docker build --platform linux/amd64 \
+            --build-arg "SERVER_VERSION=$VERSION" \
+            --build-arg "SERVER_ARCHIVE_SHA256=$SERVER_ARCHIVE_SHA256" \
+            --build-arg "SERVER_ARCHIVE_URL=$SERVER_ARCHIVE_URL" \
             --label "org.opencontainers.image.revision=$GITHUB_SHA" \
             --tag "$IMAGE:$VERSION" --tag "$IMAGE:alpha" .
       - name: Verify application starts without bundled game files

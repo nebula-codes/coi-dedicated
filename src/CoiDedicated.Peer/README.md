@@ -15,7 +15,11 @@ Use separate processes and separate data directories for two peers. Proposals us
 
 `--place-machine-at N` performs a bounded, read-only search near an existing entity for an ordinary unlocked machine placement, then proposes normal construction at local tick N. It neither creates a local speculative entity nor requests free construction or validation suppression. This fixture requires a populated island and changes the dedicated island when the server accepts the command.
 
-`--reject-speed-at N` proposes speed 2 at local tick N, which is structurally valid but disallowed by the host's speed-1 policy. This fixture requires one rejection and continued valid tick replay through the end of the session.
+`--reject-speed-at N` proposes speed 5 at local tick N, which is structurally valid but exceeds the tested multiplayer range of 1 through 4. This fixture requires one rejection and continued valid tick replay through the end of the session.
+
+`--speed-at TICK:SPEED` proposes a speed from 1 through 4 and can be repeated. Each received tick carries its pre-update speed; adaptive CPU-dependent step budgeting is disabled on both sides. Checkpoints are verified against selected canonical gameplay state after joining and every 300 server updates. See [checkpoint coverage and limitations](../../docs/synchronization.md).
+
+`--diverge-at N` deliberately changes one local entity's paused state without a network command; `--corrupt-checkpoint` instead corrupts a digest byte. Both must receive an explicit clean-snapshot recovery request or fail. Use these only on isolated test servers. A fresh normal peer using the same name and key can then verify recovery from the authoritative snapshot. Reports include native replay and checkpoint computation timing.
 
 Each peer verifies the host's exact three simulation DLL identities before authenticating and stores its verified download under a unique `join-<id>.save` filename. The download is bounded to 256 MiB and SHA-256 checked before game loading. Frame and command readers reject malformed input. Valid rejections of this peer's pending commands are recorded in `commandsRejected` and replay continues; unexpected rejection IDs fail the session. `--timeout-seconds` bounds connection, snapshot receipt, and the replay session; Ctrl+C requests cancellation. Game bootstrap itself is synchronous and finishes or fails before the next cancellation check.
 

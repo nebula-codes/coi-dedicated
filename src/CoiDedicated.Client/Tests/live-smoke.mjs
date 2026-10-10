@@ -19,10 +19,10 @@ const text = t => blob(Buffer.from(t));
 const frame = (kind, payload) => Buffer.concat([u32(payload.length + 4), u16(1), u16(kind), payload]);
 const welcome = stage => frame(2, Buffer.concat([Buffer.from([stage]), ...(stage === 0 ? [blob(nonce)] : []), text('CoI 0.8.7d / fixture')]));
 const tick = (sequence, before, after, paused, commands) => frame(7, Buffer.concat([
-  u64(sequence), u32(before), u32(after), Buffer.from([Number(paused)]), u16(commands.length), ...commands
+  u64(sequence), u32(before), u32(after), Buffer.from([Number(paused)]), u32(1), u16(commands.length), ...commands, blob(Buffer.alloc(0))
 ]));
 
-async function run(gap, mismatch = false) {
+async function run(gap, mismatch = false, resync = false) {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'coi-live-fixture-'));
   const key = path.join(directory, 'join.key');
   const output = path.join(directory, 'snapshot.save');
@@ -53,6 +53,9 @@ async function run(gap, mismatch = false) {
             socket.write(frame(5, Buffer.alloc(0)));
           } else if (stage === 1) {
             assert.equal(kind, 8); assert.equal(data.length, 4); assert.equal(data.readInt32LE(), 123);
+            // Optional cosmetic frames must not enter or interrupt the authoritative tick queue.
+            socket.write(frame(13, Buffer.concat([u16(1),u16(1),u32(7),text('fixture-other'),Buffer.from([1]),
+              Buffer.alloc(12),Buffer.from([0,0]),u16(0)])));
             socket.write(tick(17, 123, 124, false, [Buffer.concat([u64(0), text('server'), blob(Buffer.from([1, 0, 1, 0, 0]))])]));
           } else if (stage === 2) {
             assert.equal(kind, 6); assert.equal(data.readBigUInt64LE(), 1n);
@@ -62,7 +65,7 @@ async function run(gap, mismatch = false) {
             assert.equal(data.readBigUInt64LE(), 17n); assert.equal(data.readInt32LE(8), 124);
             completed = true;
             socket.write(frame(11, Buffer.concat([u64(1), text('fixture command rejected')])));
-            socket.write(tick(gap ? 19 : 18, 124, 124, true, []));
+            socket.write(resync ? frame(15, text('fixture checkpoint mismatch; reload a fresh snapshot')) : tick(gap ? 19 : 18, 124, 124, true, []));
           } else throw new Error('Unexpected client frame');
           stage++;
         }
@@ -72,7 +75,7 @@ async function run(gap, mismatch = false) {
   try {
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     const result = await new Promise((resolve, reject) => {
-      const process = spawn('dotnet', [executable, '--live', 'true', '--port', String(server.address().port), '--secret-file', key, '--output', output, ...(mismatch ? ['--mismatch', 'true'] : [])], { windowsHide: true });
+      const process = spawn('dotnet', [executable, '--live', 'true', '--port', String(server.address().port), '--secret-file', key, '--output', output, ...(mismatch ? ['--mismatch', 'true'] : []), ...(resync ? ['--resync', 'true'] : [])], { windowsHide: true });
       let stdout = '', stderr = '';
       process.stdout.on('data', data => { stdout += data; });
       process.stderr.on('data', data => { stderr += data; });
@@ -92,7 +95,7 @@ async function run(gap, mismatch = false) {
     if (gap) assert.match(result.stderr, /sequence gap/);
     assert.deepEqual(await readFile(output), snapshot);
     assert(!result.stdout.includes(secret) && !result.stderr.includes(secret));
-    console.log(gap ? 'PASS live session rejects tick sequence gap' : 'PASS live join, snapshot, ready, command proposal, tick and ack');
+    console.log(resync ? 'PASS live session preserves explicit fresh-snapshot recovery signal' : gap ? 'PASS live session rejects tick sequence gap' : 'PASS live join, snapshot, ready, command proposal, tick and ack');
   } finally {
     for (const socket of sockets) socket.destroy();
     await new Promise(resolve => server.close(resolve));
@@ -105,3 +108,4 @@ async function run(gap, mismatch = false) {
 await run(false);
 await run(true);
 await run(false, true);
+await run(false, false, true);

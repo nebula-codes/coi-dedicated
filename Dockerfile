@@ -3,9 +3,9 @@
 # Compile the small redistributable package locally with package-linux-server.ps1.
 FROM mcr.microsoft.com/dotnet/runtime:10.0-noble AS download
 ARG TARGETARCH
-ARG SERVER_VERSION=0.1.0-alpha.2
-ARG SERVER_ARCHIVE_SHA256=fae62ee85363296db8ac8690c2549a43df019f600f3faf154e43ea4bbc3f94fb
-ARG SERVER_ARCHIVE_URL=https://github.com/nebula-codes/coi-dedicated/releases/download/v0.1.0-alpha.2/CoI-Dedicated-Server-0.1.0-alpha.2-linux-x64.zip
+ARG SERVER_VERSION=0.1.0-alpha.5
+ARG SERVER_ARCHIVE_SHA256=4ea5037a09c0cb06ff08cebd327789e0e041900efdc4ba2d65854d382c379501
+ARG SERVER_ARCHIVE_URL=https://github.com/nebula-codes/coi-dedicated/releases/download/v0.1.0-alpha.5/CoI-Dedicated-Server-0.1.0-alpha.5-linux-x64.zip
 RUN test "${TARGETARCH}" = "amd64" \
     && apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl unzip \
@@ -19,7 +19,7 @@ RUN curl --fail --show-error --location --retry 3 "${SERVER_ARCHIVE_URL}" --outp
     && test -f /payload/control/CoiDedicated.Control.dll
 
 FROM mcr.microsoft.com/dotnet/runtime:10.0-noble
-ARG SERVER_VERSION=0.1.0-alpha.2
+ARG SERVER_VERSION=0.1.0-alpha.5
 LABEL org.opencontainers.image.title="CoI Dedicated Server" \
       org.opencontainers.image.description="Experimental Captain of Industry dedicated simulation host; supply your own game files." \
       org.opencontainers.image.source="https://github.com/nebula-codes/coi-dedicated" \

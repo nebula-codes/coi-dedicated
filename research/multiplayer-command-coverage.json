@@ -1,0 +1,3336 @@
+{
+  "gameVersion": "0.8.7d",
+  "compatibility": "dedicated-prototype-5 / cmd1",
+  "artifactHashes": [
+    {
+      "name": "Mafi",
+      "version": "0.8.7.0",
+      "mvid": "68f4478a-3dae-4aaa-ad5a-b2a335b5fc67",
+      "sha256": "0adf871a75600bc21859b49d09943d087b10e3fd7a108c90a3381c5ae7f8da26"
+    },
+    {
+      "name": "Mafi.Core",
+      "version": "0.8.7.0",
+      "mvid": "bd02733e-cf8d-4d7f-a22e-5b8fcf8a533c",
+      "sha256": "6292fe37a4132a60b2dadae16d65e76af2a80b5ed251e10a75ad19676c8f187c"
+    },
+    {
+      "name": "Mafi.Base",
+      "version": "0.8.7.0",
+      "mvid": "32699689-86a0-4687-a830-ae587401ab25",
+      "sha256": "6584e0c734170564d1d2632f64a2c25a782da2c16fe2888e131fe885f0a01bea"
+    },
+    {
+      "name": "Mafi.Unity",
+      "version": "0.8.7.0",
+      "mvid": "20e486a1-cb6f-4764-ab82-465e2cc1c7f0",
+      "sha256": "f0dc98b43e1e88a429c6eb494e40264be08bc0a3aa7b9bbf1fe50b3a20082a5f"
+    },
+    {
+      "name": "Mafi.UnityCore",
+      "version": "0.0.0.0",
+      "mvid": "e820845d-43ec-4e1a-af10-70e782a74ed4",
+      "sha256": "36a8fcadc28434b6db8b0ed11c6f8f8eb8af2f3e44ce7f833df112a03c2a6d1b"
+    }
+  ],
+  "evidence": [
+    "REA ev_88aa3d17e98be8071e0bd21a8816c4aafbd9f02b14a41d387f39d7ac1512f43c",
+    "Execution-free managed metadata inspection; focused local ILSpy decompilation; isolated native integration tests",
+    "Native roads/logistics/bridge/ground-rail/train-schedule fixtures: 60 invocations including isolated schedule admission regressions; copied machine/storage settings fixtures; two-peer revision5 replay, divergence detection and rejoin"
+  ],
+  "note": "Command counts are not a gameplay completion percentage. Native tests cover selected fixtures; UI-observed is static evidence, not an end-to-end UI test. Unsupported commands are explicitly blocked. No decompiled implementation is included.",
+  "commands": [
+    {
+      "type": "Mafi.Base.Prototypes.Buildings.SetBillboardColorCmd",
+      "assembly": "Mafi.Base",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Base.Prototypes.Buildings.ThermalStorages.ThermalStorageSetProductCmd",
+      "assembly": "Mafi.Base",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 182,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Base.Prototypes.Machines.PowerGenerators.ToggleMechGeneratorAutoBalanceCmd",
+      "assembly": "Mafi.Base",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 100,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Base.Prototypes.Trains.TrainStationFuelSetFuelCmd",
+      "assembly": "Mafi.Base",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Bridges.CreateBridgeFromPlanCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 86,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Bridges.SetBridgeLaneLayoutCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 87,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Cargo.CargoDepotCheatFullFuelCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "developer-or-cheat"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Cargo.CargoDepotSetFuelSliderStepCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 208,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Cargo.Modules.CargoDepotAssignContractCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Cargo.Modules.CargoDepotModuleClearProductCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 183,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Cargo.Modules.CargoDepotModuleSetProductCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 184,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Cargo.Modules.CargoShipDepartNowCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Cargo.Modules.CargoShipPayWithUnityIfOutOfFuelCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Cargo.Modules.CargoShipReplaceFuelCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 101,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Cargo.Modules.CargoShipSetFuelSaverCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Cargo.TradeDockToggleUnloadPriorityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 102,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Farms.AnimalFarmSetSlaughterLimitCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Farms.AnimalFarmToggleGrowthPauseCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 203,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Farms.FarmAssignCropCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Farms.FarmForceNextSlotCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 103,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Farms.FarmHarvestNowCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 104,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Farms.FarmSetFertilityTargetCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 201,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Farms.MoveAnimalsCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Farms.ToggleFullBufferNotificationCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 105,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Forestry.ForestryTowerAreaChangeCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Forestry.ForestryTowerSetCutPercentageCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 200,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Forestry.ForestryTowerSetTreeProtoCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Buildings.FuelStations.ToggleFuelStationTrucksAllowedToRefuelCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 106,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Mine.AddProductToDumpCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Mine.AddProductToNotifyIfCannotDumpCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Mine.MineTowerAreaChangeCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Mine.RemoveProductToDumpCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Mine.RemoveProductToNotifyIfCannotDumpCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Offices.SetOfficeComputingBoostStepCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Offices.SetOfficeFocusStepCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.OreSorting.AddProductToSortCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 213,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.OreSorting.RemoveProductToSortCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 214,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.OreSorting.SetProductPortCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 215,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.OreSorting.SortingPlantNoSingleProductCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 185,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.OreSorting.SortingPlantSetBlockedProductAlertCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 107,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.OreSorting.ToggleSorterAutoAssignBuffers",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 186,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.RuinedBuildings.RuinsScrapCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Shipyard.ShipayardSetFuelSliderStepCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 209,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Shipyard.ShipyardCheatFullFuelCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "developer-or-cheat"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Shipyard.ShipyardDiscardProductCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 108,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Shipyard.ShipyardMakePrimaryCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 109,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Shipyard.ShipyardSetRepairingCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Shipyard.ShipyardToggleAutoRepairCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 110,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Shipyard.ShipyardToggleUnloadPriorityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 111,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Shipyard.ShipyardToggleWorksPauseCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 112,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Shipyard.ShipyardWorldEntityConstructionToggle",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Storages.AssignProductToSlotCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 204,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Storages.NuclearWaste.NuclearWasteStorageToggleOutputPortCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 113,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Storages.StorageAddAllowedTruckGroupCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 114,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Storages.StorageAlertSetEnabledCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 115,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Storages.StorageAlertSetThresholdCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 202,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Storages.StorageCheatClearProductCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "developer-or-cheat"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Storages.StorageCheatProductCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "developer-or-cheat"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Storages.StorageClearProductCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 187,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Storages.StorageDisableLogisticsToggleCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 116,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Storages.StorageQuickRemoveProductCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Storages.StorageRemoveAllowedTruckGroupCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 117,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Storages.StorageSetCheatModeCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "developer-or-cheat"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Storages.StorageSetProductCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 118,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Storages.StorageSetSliderStepCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Storages.StorageToggleGodModeCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Buildings.Storages.ToggleEnforceAssignedVehiclesForEntityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 119,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Console.GameConsoleCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Entities.Commands.EntityDisableLogisticsToggleCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 198,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Commands.SetConstructionPriorityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Commands.SetCustomPriorityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 210,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Commands.SetDumpHeightOffsetCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Commands.SetGeneralPriorityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Priorities.SetGlobalPriorityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 211,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.QuickRemoveEntityRefundCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 120,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.ReplaceEntityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.SetConstructionPausedCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.SetEntityEnabledCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Entities.SetEntityNameCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.SetPlanningModeEnabledCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 121,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Ships.RecoverShipCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 122,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Static.Commands.AssignStaticEntityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Static.Commands.BatchCreateStaticEntitiesCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": true,
+      "wireId": null,
+      "category": "ui-observed",
+      "wireVariants": [
+        {
+          "wireId": 8,
+          "scope": "Placement only; ordinary buildable layouts"
+        },
+        {
+          "wireId": 400,
+          "scope": "Typed copied settings; ordinary machines and storage only"
+        }
+      ]
+    },
+    {
+      "type": "Mafi.Core.Entities.Static.Commands.CloneConfigBetweenEntitiesCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 123,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Static.Commands.CreateStaticEntityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Entities.Static.Commands.CutEntitiesForPasteCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Static.Commands.FinishBuildOfStaticEntityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Static.Commands.SpendUpointsOnEntitiesCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Static.Commands.StartDeconstructionOfStaticEntityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Static.Commands.StartDeconstructionOfTransportSubSectionsCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Static.Commands.ToggleConstructionPriorityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 124,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Static.Commands.ToggleImportRouteEnforcementCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 199,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Static.Commands.ToggleStaticEntityConstructionCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Static.Commands.TryTransformEntityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 125,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Static.Commands.UnassignStaticEntityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Static.QuickRemoveFromEntityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 126,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.Static.RecoverOceanAccessCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.ToggleDefaultLogisticsMode",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 127,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.ToggleEnabledCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.ToggleEnabledGroupCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Entities.UpgradeEntityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Factory.Datacenters.DataCenterToggleRackCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.ElectricPower.SetElectricityGenerationPriorityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.ElectricPower.SetIsElectricitySurplusConsumerCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 128,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.ElectricPower.SetIsElectricitySurplusGeneratorCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 129,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Lifts.ReverseLiftCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 130,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Machines.ClearRecipeProductsCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Factory.Machines.ClearUnusedMachineBuffersCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 131,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Machines.MachineBoostToggleCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 132,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Machines.MachineSetRecipeActiveCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Factory.Machines.MachineToggleRecipeActiveCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 133,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Machines.ReorderRecipeCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 212,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Machines.WellPumpAlertSetEnabledCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 134,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.NuclearReactors.NuclearReactorSetEnrichmentStepCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.NuclearReactors.NuclearReactorSetPowerLevelCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.NuclearReactors.NuclearReactorToggleAllowedFuelCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 135,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.NuclearReactors.NuclearReactorToggleAutomaticRegulationCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 136,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Sorters.SorterToggleProductCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 137,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Transports.AddTransportPillarCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Transports.BuildTransportCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Transports.ClearTransportCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 138,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Transports.DeconstructTransportSegmentCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Transports.QuickClearTransportCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Factory.Transports.RemoveTransportPillarCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 139,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Transports.ReverseTransportCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 140,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Transports.StackerTowerSelectProductForSlopePreviewCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Transports.StackerTowerSetDumpRadiusCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Transports.StackerTowerSetFullAlertActiveCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Factory.Transports.StackerTowerSetMaxSegmentsCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Zippers.ZipperSetForceEvenInputsCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 141,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Zippers.ZipperSetForceEvenOutputsCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 142,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Factory.Zippers.ZipperSetPriorityPortsCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Fleet.NotifyOnBattleOpenedCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 143,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Game.ChangeGameDifficultyCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Input.TerraformerDepositCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Input.TerraformerRemoveCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Maintenance.QuickRepairEntityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 144,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Map.UnlockMapCellCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.MessageNotifications.MessageNotificationDismissCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Messages.Goals.MarkGoalAsFinishedCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 145,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Messages.MarkMessageAsReadCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 146,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Notifications.NotificationDismissCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Population.Edicts.ToggleEdictEnabledCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Products.PinnedProductReorderCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Products.PinToggleCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 147,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Research.ResearchCheatFinishCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "developer-or-cheat"
+    },
+    {
+      "type": "Mafi.Core.Research.ResearchQueueDequeueCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Research.ResearchStartCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Research.ResearchStopCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Simulation.GameSpeedChangeCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Simulation.SetSimPauseStateCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": true,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.SpaceProgram.AddLaunchPadCargoBufferCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 148,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.SpaceProgram.BringAsteroidToOrbitCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.SpaceProgram.BuildOrUpgradeSpaceStationCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 149,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.SpaceProgram.CancelBuildOrUpgradeOfSpaceStationCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 150,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.SpaceProgram.DiscardAsteroidCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.SpaceProgram.DowngradeSpaceStationCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 151,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.SpaceProgram.DropAsteroidAtCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.SpaceProgram.LaunchRocketCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 152,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.SpaceProgram.RemoveLaunchPadCargoBufferCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 153,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.SpaceProgram.ReorderLaunchPadCargoBufferCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.SpaceProgram.ScanForNewAsteroidCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 154,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.SpaceProgram.SetOrbitCargoLimitCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.SpaceProgram.SetRocketAutoLaunchCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 155,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.SpaceProgram.ToggleRocketCountdownMuteCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 156,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.SpaceProgram.ToggleSpaceStationCrewEnabledCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 157,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Terrain.CheatRestoreTerrainCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "developer-or-cheat"
+    },
+    {
+      "type": "Mafi.Core.Terrain.Designation.AddSurfaceDecalCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 83,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Terrain.Designation.AddSurfaceDesignationsCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 81,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Terrain.Designation.AddTerrainDesignationsCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Terrain.Designation.BatchAddSurfaceDecalCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Terrain.Designation.BatchRemoveSurfaceDecalCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Terrain.Designation.BatchRemoveSurfacePlacingDesignationsCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Terrain.Designation.ChangeSurfaceDecalColorCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 85,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Terrain.Designation.PasteSurfaceDesignationsCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Terrain.Designation.QuickFulfillDesignationsCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Terrain.Designation.RemoveDesignationsCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Terrain.Designation.RemoveSurfaceDecalCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 84,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Terrain.Designation.RemoveSurfaceDesignationsCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 82,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Terrain.Props.QuickRemovePropsCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Terrain.Trees.DesignateHarvestedTreesCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Terrain.Trees.PrepareManualPlantTreeCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Terrain.Trees.RemoveManualPlantTreeCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.AddEntityToScheduleItemCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 216,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.AddNewScheduleItemToTrainLineCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 217,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.AddRemoveTrainScheduleItemProductFilterCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 218,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.AddTrainTrackPillarCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.AssignTrainLineToTrainCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 219,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.AssignTrainLineToUnfinishedTrainCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 220,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.AssignTrainToNetworkCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 221,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.BuildTrainCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.CancelTrainBuildCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 222,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.CancelTrainJobCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 223,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.CancelTrainReplacementCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 224,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.CreateNewTrainLineCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 158,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.CreateNewTrainNetworkCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 159,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.CreateTrainTrackEntityWithDirectionCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Trains.CreateTrainTrackFromPlanCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 88,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.DestroyTrainImmediateCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Trains.EditPathfindingRestrictionCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.NavigateTrainToCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 225,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.QuickBuildCurrentTrainCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 160,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.QuickRepairTrainCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.RecoverTrainCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.RefuelTrainCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 226,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.RemoveDepartConditionCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.RemoveEntityFromScheduleItemCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 227,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.RemovePathfindingRestrictionCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.RemoveTrainLineCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 228,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.RemoveTrainLineScheduleItemCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 252,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Trains.RemoveTrainNetworkCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 229,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.RemoveTrainTrackPillarCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 161,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.RenameTrainLineCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 230,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.RenameTrainNetworkCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 231,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.ReorderDepartConditionCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.ReorderTrainLineScheduleItemCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 232,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.ReplaceEntityInScheduleCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.ReverseTracksCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.ReverseTrainCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Trains.ScrapTrainCarCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetArrivalRuleAlwaysAllowCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 162,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetArrivalRuleNetworkPriorityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 233,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetArrivalRuleNetworkThresholdCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 234,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetDepartConditionCombineMethodCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetDoNotSkipThisTrainStationCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 163,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetNetworkCargoStationCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 235,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetNetworkFuelStationCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 236,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetNetworkRefuelThresholdCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 237,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetNetworkWaitingBayCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 238,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetStationNetworkPriorityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetStationRequireFullServiceOnArrivalCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 164,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainDrivingModeCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainLineColorApplicationCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 239,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainLineColorCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainLineColorSourceCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainLineIcon",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainLineLocoColorModeCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainLineLocoCustomColorCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainNetworkColorApplicationCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 240,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainNetworkColorCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainNetworkLocoColorModeCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainNetworkLocoCustomColorCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainPreferredDirectionCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainScheduleItemProductFilterCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainSchedulePriority",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 241,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainScheduleSkipIfCannotArriveCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 242,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainScheduleSkipIfHighFuelCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 243,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainScheduleSkipIfNextCanArriveCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 244,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainSpeedCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainStationModuleLimitsCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainStationTrainLimitCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 245,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainTrackCriticalBlockStateCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetTrainTrackSuperBlockStateCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SetWagonProductFilterCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.SkipScheduleItemCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 246,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.ToggleBidirectionalCommand",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.ToggleLoadUnloadTrainScheduleItemCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 247,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.ToggleScrapTrainAtNearestDepotCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 248,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.ToggleTrainFullEmptyDebugCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "developer-or-cheat"
+    },
+    {
+      "type": "Mafi.Core.Trains.ToggleTrainPausedCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 249,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.ToggleTrainStationAllowedFuelCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 165,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.ToggleTrainStationModuleLoadUnloadCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 250,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.ToggleTrainStationStorageLinkCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 166,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.TrainContainsDepartConditionEditCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.TrainDurationDepartConditionEditCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.TrainStationCheatAssignedProductCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "developer-or-cheat"
+    },
+    {
+      "type": "Mafi.Core.Trains.TrainStationModuleClearProductCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 167,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.TrainStationModuleQuickRemoveProductCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 168,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.TrainStationModuleSetProductCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 169,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Trains.UpdateTrainStationArrivalRuleCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 251,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Utils.ResolvedDependenciesDuringSimVerifCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Utils.SetInstaBuildCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.AddVehicleReplacementTaskCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.ChangeLogisticsZoneAreaCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 188,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.AddVehicleToBuildQueueCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.AssignVehicleToEntityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.AssignVehicleTypeToEntityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 79,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.BuildVehicleForeverCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 206,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.CancelReplaceVehicleCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 170,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.CreateAndSpawnVehicle",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.DiscardVehicleCargoCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 171,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.ExcavatorTogglePreferredProductCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 207,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.FinishVehicleBuildCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.NavigateVehicleToPositionCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.NavigateVehicleToStaticEntityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.NavigateVehicleToVehicleCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.QuickBuildCurrentVehicleCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 172,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.RecoverVehicleCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 173,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.RemoveAndDestroyVehicle",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.RemoveVehicleFromBuildQueueCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 205,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.ReplaceVehicleCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.ScrapVehicleCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "internal-or-indirect"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.SetVehicleDepotTargetZone",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 197,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.TogglePartialTrucksLoadCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 174,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.ToggleVehicleScrapCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 175,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.UnassignVehicleCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 176,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.UnassignVehicleFromEntityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 80,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.Commands.VehicleCheatProductCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "developer-or-cheat"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.CreateNewLogisticsZoneCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 177,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.RemoveLogisticsZoneCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 189,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.RemoveVehicleReplacementTaskCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.RenameLogisticsZoneCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 190,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.SetLogisticsZoneColorCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 191,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.SetVehicleLogisticsZoneCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 192,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.ToggleLogisticsZoneConstructionCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 193,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.TruckConstructionRuleSetCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 196,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.TruckJobsAllowCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 194,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.Vehicles.TruckJobsForbidCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 195,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.World.Contracts.ToggleContractCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.World.Entities.SetShiftsCountForMineCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.World.ExploreFinishCheatCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "developer-or-cheat"
+    },
+    {
+      "type": "Mafi.Core.World.FleetLoadCrewCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.World.FleetModificationsCancelCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 178,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.World.FleetModificationsPrepareCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.World.FleetRepairCheatCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "developer-or-cheat"
+    },
+    {
+      "type": "Mafi.Core.World.FleetToggleAutoReturnCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 179,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.World.FleetUnloadCrewCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": true,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 180,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.World.FleetUnloadFuelCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": 181,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.World.GoToLocationCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.World.Loans.AcceptLoanCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.World.Loans.MakeLoanOverpaymentCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.World.Loans.SetLoanBufferPriorityCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.World.QuickTrade.QuickTradeCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": true,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.World.TeleportFleetToLocationCheatCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": false,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "developer-or-cheat"
+    },
+    {
+      "type": "Mafi.Core.World.WorldMapEntityCancelRepairCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.World.WorldMapEntityStartRepairCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.World.WorldMapEntityUpgradeCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    },
+    {
+      "type": "Mafi.Core.World.WorldMapSettlementAdoptPopsCmd",
+      "assembly": "Mafi.Core",
+      "observedUiConstructorCaller": true,
+      "codecImplemented": false,
+      "nativeProcessorTestPassed": false,
+      "twoPeerReplayTestPassed": false,
+      "wireId": null,
+      "category": "ui-observed"
+    }
+  ],
+  "implementedCommandClasses": 199,
+  "wireSchemaCount": 200
+}

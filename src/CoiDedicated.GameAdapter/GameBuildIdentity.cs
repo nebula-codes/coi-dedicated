@@ -24,7 +24,7 @@ namespace CoiDedicated.GameAdapter
             string digest = BitConverter.ToString(combined.GetHashAndReset()).Replace("-", "").ToLowerInvariant();
             // Bump the prototype revision when accepted command semantics change,
             // even if their field layout and game DLLs remain the same.
-            return "CoI 0.8.7d / dedicated-prototype-2 / cmd" + GameCommandCodec.Version + " / " + digest;
+            return "CoI 0.8.7d / dedicated-prototype-5 / cmd" + GameCommandCodec.Version + " / " + digest;
         }
     }
 }

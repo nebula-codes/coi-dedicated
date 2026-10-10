@@ -1,11 +1,11 @@
 # Host a dedicated island
 
-The Windows server runs the island without an open game window or a connected player. The local browser manager controls its process, settings, saves, and backups. This **alpha** still has limited multiplayer action coverage; read the [player guide](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.1/docs/player-guide.md) before starting a shared island.
+The Windows server runs the island without an open game window or a connected player. The local browser manager controls its process, settings, saves, and backups. This **alpha** still has limited multiplayer action coverage; read the [player guide](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/docs/player-guide.md) before starting a shared island.
 
 ## First start
 
 1. Install **Captain of Industry 0.8.7d** on the host PC. The server uses your installed game files; they are not included in the download.
-2. Download [CoI-Server-Manager-0.1.0-alpha.1-win-x64.zip](https://github.com/nebula-codes/coi-dedicated/releases/download/v0.1.0-alpha.1/CoI-Server-Manager-0.1.0-alpha.1-win-x64.zip) and extract it completely to a writable folder.
+2. Download [CoI-Server-Manager-0.1.0-alpha.5-win-x64.zip](https://github.com/nebula-codes/coi-dedicated/releases/download/v0.1.0-alpha.5/CoI-Server-Manager-0.1.0-alpha.5-win-x64.zip) and extract it completely to a writable folder.
 3. Run **Start Server Manager.cmd**. The release includes its .NET runtime; no .NET SDK or separate runtime installation is required.
 4. Open the dashboard at **http://127.0.0.1:28560** if the browser does not open automatically.
 5. In **Settings**, confirm the installed game directory, map, ports, and autosave interval. Choose a name for the island and save the settings.
@@ -19,7 +19,7 @@ The populated **New Haven** profile is the default. Map and starting-factory set
 
 For players on other computers, stop the profile, set its listen address to your LAN/VPN interface address or **0.0.0.0**, and start it again. Allow incoming **TCP 28551** through Windows Firewall for the network you use. The manager does not change firewall or router settings.
 
-Share the host's LAN/VPN address, player port, this release's client download, and the profile's **join.key** download with your players privately. Follow the [player guide](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.1/docs/player-guide.md) to install the client and join through F8.
+Share the host's LAN/VPN address, player port, this release's client download, and the profile's **join.key** download with your players privately. Follow the [player guide](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/docs/player-guide.md) to install the client and join through F8.
 
 | Default port | Purpose | Exposure |
 | --- | --- | --- |
@@ -31,7 +31,7 @@ The server's gameplay and admin endpoints use the profile's listen address. Fire
 
 ## Daily controls
 
-- **Pause / Resume** changes the shared simulation state. The initial server runs at speed 1.
+- **Pause / Resume** changes the shared simulation state. The initial server runs at speed 1; clients can select shared speeds 1–4.
 - **Save** writes the current island. Autosaves run at the configured interval.
 - **Stop** requests a final save and a graceful process exit. During startup, the manager waits for the server to finish initialization before requesting shutdown.
 - **Restart** saves and stops the process, then starts the same island again.
@@ -55,7 +55,7 @@ To load a different island:
 
 Importing adds a library entry; it does not immediately replace the active island. Imports accept files up to **256 MiB** and check the CoI header. The game checks compatibility when loading. Restoring verifies the recorded SHA-256, archives the current island first, and atomically replaces the active save.
 
-Use a separate test island for this release. Full gameplay coverage, long-running stability, complete state checksums, and automatic resynchronization remain unfinished.
+Use a separate test island for this release. Full gameplay coverage, long-running stability, and complete state checksums remain unfinished. Selected-state divergence checks and bounded client snapshot recovery are implemented; actual Unity recovery and expanded overlay visuals still need an in-game check.
 
 ## Updating and reporting problems
 

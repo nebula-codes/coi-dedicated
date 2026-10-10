@@ -1,7 +1,7 @@
 #Requires -Version 7.0
 [CmdletBinding()]
 param(
-    [ValidatePattern('^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$')][string]$Version = '0.1.0-alpha.1',
+    [ValidatePattern('^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$')][string]$Version = '0.1.0-alpha.5',
     [string]$GameDir = $env:COI_GAME_DIR,
     [string]$OutputDirectory
 )
@@ -55,12 +55,12 @@ Get-ChildItem -LiteralPath (Join-Path $repository 'distribution\server') -File |
 foreach ($package in @($client,$server)) {
     Copy-Item -LiteralPath (Join-Path $repository 'LICENSE'), (Join-Path $repository 'THIRD-PARTY-NOTICES.md') -Destination $package
     Copy-Item -LiteralPath (Join-Path $repository 'distribution\third-party') -Destination $package -Recurse
-    [ordered]@{ version=$Version; platform='win-x64'; gameVersion='0.8.7d'; compatibility='dedicated-prototype-2 / cmd1'; experimental=$true } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'release.json') -Encoding utf8NoBOM
+    [ordered]@{ version=$Version; platform='win-x64'; gameVersion='0.8.7d'; compatibility='dedicated-prototype-5 / cmd1'; experimental=$true } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'release.json') -Encoding utf8NoBOM
 }
 $doorstopSource = Join-Path $dependencies 'UnityDoorstop-v4.5.0-source.zip'
 Download-Checked 'https://github.com/NeighTools/UnityDoorstop/archive/refs/tags/v4.5.0.zip' $doorstopSource '7F0C963104AA08BF5FEFEF8FF85E7FECD8306838F5AF3101487D9DB4E9188D63'
 Copy-Item -LiteralPath $doorstopSource -Destination (Join-Path $client 'third-party')
-Copy-Item -LiteralPath (Join-Path $repository 'docs\player-guide.md') -Destination $client
+Copy-Item -LiteralPath (Join-Path $repository 'docs\player-guide.md'), (Join-Path $repository 'docs\multiplayer-coverage.md') -Destination $client
 Copy-Item -LiteralPath (Join-Path $repository 'docs\hosting-guide.md') -Destination $server
 Make-Manifest $clientPayload | Set-Content -LiteralPath (Join-Path $client 'files.json') -Encoding utf8NoBOM
 

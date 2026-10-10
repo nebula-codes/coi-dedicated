@@ -15,7 +15,7 @@ All integers are little-endian. A frame contains:
 
 The body length must be `4..1048576` bytes, making the maximum payload `1048572` bytes. The length is validated before payload allocation. Both known message kinds and version are validated before payload reading. Payloads can be empty; individual message handlers decide if an empty payload is meaningful.
 
-The stable kind IDs are Hello=1, Welcome=2, SnapshotBegin=3, SnapshotChunk=4, SnapshotEnd=5, Command=6, Tick=7, Ack=8, Error=9, Ping=10, CommandRejected=11.
+The stable kind IDs are Hello=1, Welcome=2, SnapshotBegin=3, SnapshotChunk=4, SnapshotEnd=5, Command=6, Tick=7, Ack=8, Error=9, Ping=10, CommandRejected=11, PresenceUpdate=12, PresenceSnapshot=13, CheckpointReply=14, ResyncRequired=15. Gameplay revision 5 is separately enforced by the exact build identity before snapshot transfer.
 
 Payload strings and byte arrays have their own unsigned 4-byte byte-length prefix. Strings use strict UTF-8, with a default 4096-byte limit. Readers and writers support a smaller per-field limit. Boolean encoding is exactly one byte, `0` or `1`. The framing library does not deserialize object graphs. Game-command payloads use an explicit allowlist; server snapshots are opaque transfers subsequently loaded by the game's native save loader.
 
@@ -28,12 +28,16 @@ Live messages use these payloads:
 | Direction / kind | Payload |
 | --- | --- |
 | Client `Command` | UInt64 increasing request ID; Bytes encoded command |
-| Server `Tick` | UInt64 sequence; Int32 before step; Int32 after step; Boolean **before-update** pause state; UInt16 command count; each command contains UInt64 request ID, String author, Bytes encoded command |
+| Server `Tick` | UInt64 sequence; Int32 before step; Int32 after step; Boolean **before-update** pause state; Int32 **before-update** speed; UInt16 command count; each command contains UInt64 request ID, String author, Bytes encoded command; Bytes checkpoint (empty or 32 bytes) |
 | Client `Ack` after ready | UInt64 tick sequence; Int32 actual resulting step |
+| Client `CheckpointReply` | UInt64 tick sequence; Int32 resulting step; Bytes SHA-256 checkpoint (exactly 32 bytes) |
 | Server `CommandRejected` | UInt64 request ID; String reason; this rejects one proposal without closing the session |
 | Server `Error` | String fatal error |
+| Server `ResyncRequired` | String reason; client must freeze, end the scene and rejoin from a fresh snapshot |
 
-The host reserves request ID zero and author `server` for administrative commands. Clients set the supplied pre-update pause state, schedule admitted commands in order, and call one 100 ms game update per tick. Current gameplay sessions use speed 1. Step acknowledgments detect skipped or duplicated updates; they are not full-state checksums.
+The host reserves request ID zero and author `server` for administrative commands. Clients set the supplied pre-update pause and speed, schedule admitted commands in order, and call one 100 ms game update per tick. Speeds 1–4 use fixed step budgeting on both sides. Step acknowledgments detect skipped or duplicated updates. Checkpoint replies precede the associated acknowledgement and cover selected canonical gameplay fields; they are not full-state checksums. See [synchronization details](../../docs/synchronization.md).
+
+Presence has its own versioned primitive schema with bounded finite coordinates, at most 32 outline previews per peer, eight peers, and five updates per second. It is cosmetic and cannot schedule game commands. Hidden, stale, and disconnected entries are removed; state expires after three seconds.
 
 ## API
 

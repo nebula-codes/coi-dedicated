@@ -14,7 +14,9 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Unknown versions and kinds rejected", UnknownHeadersAsync),
     ("Cancellation remains caller controlled", CancellationAsync),
     ("Malformed payload lengths, booleans, and UTF-8 rejected", MalformedPayloadAsync),
-    ("Writer enforces byte bounds atomically", WriterBoundsAsync)
+    ("Writer enforces byte bounds atomically", WriterBoundsAsync),
+    ("Presence bounds, untrusted input, identity and round trips", PresenceCodecTests.Run),
+    ("Checkpoints bind digest to sequence and step with strict bounds", CheckpointCodecTests.Run)
 };
 int failed = 0;
 foreach (var test in tests)

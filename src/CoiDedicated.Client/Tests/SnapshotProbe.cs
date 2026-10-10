@@ -21,8 +21,18 @@ internal static class SnapshotProbe
                 var tick = await WaitTick(session, cancellation.Token);
                 if (tick.Sequence != 17 || tick.BeforeStep != 123 || tick.AfterStep != 124 || tick.Paused || tick.Commands.Length != 1)
                     throw new InvalidOperationException("First live tick fixture differs.");
+                if (session.Presence.Length != 1 || session.Presence[0].Name != "fixture-other" || session.Presence[0].PeerId != 7)
+                    throw new InvalidOperationException("Presence did not remain separate from authoritative ticks.");
                 session.Propose(1, new byte[] { 1, 2, 3 });
                 session.Acknowledge(tick.Sequence, tick.AfterStep);
+                if (options.ContainsKey("--resync"))
+                {
+                    while (session.Failure == null) await Task.Delay(5, cancellation.Token);
+                    if (!session.RecoveryRequired || !session.Failure.Contains("fixture checkpoint mismatch"))
+                        throw new InvalidOperationException("Server recovery signal was lost.");
+                    Console.WriteLine("Explicit server recovery signal preserved.");
+                    return 0;
+                }
                 var second = await WaitTick(session, cancellation.Token);
                 if (second.Sequence != 18 || second.BeforeStep != 124 || second.AfterStep != 124 || !second.Paused)
                     throw new InvalidOperationException("Second live tick fixture differs.");

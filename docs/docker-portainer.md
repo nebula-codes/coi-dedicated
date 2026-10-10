@@ -2,7 +2,7 @@
 
 This stack runs the island on a **Linux Intel/AMD 64-bit Docker host**. Portainer supplies start, stop, restart, logs, console, and health status. The Windows browser manager is not part of this image. Players continue using the Windows CoI multiplayer client.
 
-This is an unofficial alpha for **Captain of Industry 0.8.7d**. It has the same limited multiplayer actions as the Windows server: ordinary machine/storage placement, selected priorities and recipes, pause/resume, construction toggles, and deconstruction. Roads, belts/pipes, terrain editing, batch placement, and many specialized actions remain unsupported. Long-session determinism and automatic resynchronization are unfinished. Keep backups and use a test island.
+This is an unofficial alpha for **Captain of Industry 0.8.7d**. It has the same command coverage as the Windows server, including native building batches, roads, transports, terrain, truck assignment, logistics, and many inspector controls. It supports shared speeds 1–4 and selected-state checkpoints. The matching client attempts bounded snapshot recovery after a connection or state failure. See the [coverage ledger](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/docs/multiplayer-coverage.md) and [synchronization limits](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/docs/synchronization.md); full gameplay parity and long-session determinism remain unproven.
 
 ## 1. Copy your installed game to the Linux host
 
@@ -28,18 +28,18 @@ Use matching game assemblies and DLC configuration on server and clients. The cu
 In your **Docker Standalone** environment in Portainer:
 
 1. Open **Stacks → Add stack**, name it `coi-dedicated`, and select **Web editor**.
-2. Paste [compose.portainer.yml](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.2/compose.portainer.yml).
+2. Paste [compose.portainer.yml](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/compose.portainer.yml).
 3. Under **Environment variables**, add `COI_GAME_DIR` with the absolute Linux game directory, for example `/srv/coi/game`.
 4. Optionally set `COI_BIND_IP` to the Linux host's LAN IP to restrict the published player port to that interface. Its default is `0.0.0.0`.
 5. Select **Deploy the stack**. Open the container's **Logs** while it prepares the world. Health changes from `starting` to `healthy` once the simulation answers authenticated status requests.
 
-The image is `ghcr.io/nebula-codes/coi-dedicated:0.1.0-alpha.2`, and the stack explicitly selects `linux/amd64`. ARM NAS/Raspberry Pi, Docker Swarm, and Kubernetes are not covered by this stack. Initial world creation can take several minutes; health has a five-minute startup allowance. A Docker `unhealthy` status is a diagnostic, not an automatic restart trigger.
+The image is `ghcr.io/nebula-codes/coi-dedicated:0.1.0-alpha.5`, and the stack explicitly selects `linux/amd64`. ARM NAS/Raspberry Pi, Docker Swarm, and Kubernetes are not covered by this stack. Initial world creation can take several minutes; health has a five-minute startup allowance. A Docker `unhealthy` status is a diagnostic, not an automatic restart trigger.
 
 The named volume **`coi-dedicated-data`** holds the island, keys, autosaves, and bootstrap logs. Docker initializes a new volume with ownership for the non-root app user. The explicit volume name preserves the same data when the stack is redeployed; use a different `COI_DATA_VOLUME` for a separate island. Run only one server against a data volume.
 
 The game mount is read-only. The container root filesystem is also read-only; its persistent writes go to `/data`, and temporary files go to `/tmp`. A small symlink view at the stable path `/tmp/coi-game` accommodates the Windows game's backslash-based dependency paths on Linux, while still reading the original files. The view is recreated on each container start; the actual save and keys remain in `/data`. No game DLL is patched. The image runs as UID/GID **1654**, drops Linux capabilities, and does not require privileged mode or a Docker socket mount.
 
-If your registry cannot fetch GHCR, use [compose.portainer.build.yml](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.2/compose.portainer.build.yml) instead. This builds from the tagged public repository and checks the SHA-256 of the public Linux package. It requires outbound access to GitHub, Microsoft's image registry, and Ubuntu package repositories. Your game folder remains a runtime mount and never becomes build context or image content.
+If your registry cannot fetch GHCR, use [compose.portainer.build.yml](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/compose.portainer.build.yml) instead. This builds from the tagged public repository and checks the SHA-256 of the public Linux package. It requires outbound access to GitHub, Microsoft's image registry, and Ubuntu package repositories. Your game folder remains a runtime mount and never becomes build context or image content.
 
 ## 3. Connect players
 
@@ -47,7 +47,7 @@ Allow inbound **TCP 28551** on the Linux host/NAS firewall from your home networ
 
 Give players:
 
-- The Windows [multiplayer client download](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.1) and the [player guide](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.1/docs/player-guide.md). This container keeps the same `dedicated-prototype-2 / cmd1` wire protocol; exact game assembly fingerprints must also match.
+- The Windows [multiplayer client download](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.5) and the [player guide](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/docs/player-guide.md). This container keeps the same `dedicated-prototype-5 / cmd1` wire protocol; exact game assembly fingerprints must also match.
 - The **Linux host's LAN IP**, and player port **28551** (or your `COI_GAME_PORT`). Do not use the container's internal IP or the old Windows host address.
 - The server's **join.key**, sent privately.
 
@@ -77,7 +77,7 @@ docker volume create coi-dedicated-data
 docker run --rm --user 0:0 --entrypoint /bin/sh \
   --mount type=volume,source=coi-dedicated-data,target=/data \
   --mount type=bind,source=/srv/coi/import,target=/import,readonly \
-  ghcr.io/nebula-codes/coi-dedicated:0.1.0-alpha.2 \
+  ghcr.io/nebula-codes/coi-dedicated:0.1.0-alpha.5 \
   -c 'set -eu; test ! -e /data/island.save; test ! -e /data/join.key; chown 1654:1654 /data; chmod 700 /data; install -o 1654 -g 1654 -m 600 /import/island.save /data/island.save; install -o 1654 -g 1654 -m 600 /import/join.key /data/join.key'
 ```
 
@@ -125,6 +125,6 @@ Developers need .NET SDK 10, PowerShell 7, this source checkout, and their own m
 pwsh ./scripts/package-linux-server.ps1 -GameDir 'F:\SteamLibrary\steamapps\common\Captain of Industry'
 ```
 
-The script emits `CoI-Dedicated-Server-0.1.0-alpha.2-linux-x64.zip` and `SHA256SUMS-linux.txt`. Release maintainers publish the ZIP, pin its SHA-256 in the Dockerfile, then build/publish the image. The runtime image supplies .NET 10. The Linux ZIP alone is not a self-contained executable and does not include the Windows browser manager.
+The script emits `CoI-Dedicated-Server-0.1.0-alpha.5-linux-x64.zip` and `SHA256SUMS-linux.txt`. Release maintainers publish the ZIP and checksum together. The release workflow selects the matching version and verifies its archive checksum before publishing the image; the Dockerfile also pins the current release for source builds. The runtime image supplies .NET 10. The Linux ZIP alone is not a self-contained executable and does not include the Windows browser manager.
 
 Container behavior follows the official [Docker Compose service reference](https://docs.docker.com/reference/compose-file/services/) and [Microsoft .NET container guidance](https://learn.microsoft.com/dotnet/core/docker/introduction). Portainer's [stack deployment guide](https://docs.portainer.io/user/docker/stacks/add) describes its editor and environment variables.

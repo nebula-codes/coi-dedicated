@@ -125,6 +125,7 @@ internal static class PeerSession
         var simulation = resolver.Resolve<SimLoopEvents>();
         var scheduler = resolver.Resolve<IInputScheduler>();
         simulation.SetSimSpeed(1);
+        DeterministicSimulation.Configure(simulation);
         if (simulation.CurrentStep.Value != snapshotStep)
             throw new ProtocolException($"Loaded step {simulation.CurrentStep.Value} differs from snapshot step {snapshotStep}.");
         using (var ready = new PayloadWriter())
@@ -136,6 +137,12 @@ internal static class PeerSession
 
         ulong lastSequence = 0, nextRequestId = 1;
         bool sawTick = false;
+        int checkpointsVerified = 0;
+        double checkpointMilliseconds = 0, checkpointMaxMilliseconds = 0, replayMilliseconds = 0, replayMaxMilliseconds = 0;
+        double terrainMilliseconds = 0;
+        var checkpointTimings = new List<object>();
+        var memorySamples = new List<object>();
+        using var process = System.Diagnostics.Process.GetCurrentProcess();
         var commandsSeen = new List<CommandObservation>();
         var commandsRejected = new List<CommandRejection>();
         var pending = new HashSet<ulong>();
@@ -146,6 +153,19 @@ internal static class PeerSession
             while (true)
             {
                 frame = ReadFrame(stream, token);
+                if (frame.Kind == MessageKind.PresenceSnapshot)
+                {
+                    PresenceCodec.DecodeSnapshot(frame.Payload);
+                    continue;
+                }
+                if (frame.Kind == MessageKind.ResyncRequired)
+                {
+                    var recovery = new PayloadReader(frame.Payload); string message = recovery.ReadString(1024); recovery.EnsureEnd();
+                    if (!options.CorruptCheckpoint && !options.DivergeAt.HasValue) throw new ProtocolException(message);
+                    File.WriteAllText(Path.Combine(options.DataDirectory, "resync-required.txt"), message);
+                    Console.WriteLine("[peer] PASS divergent checkpoint was rejected with clean-snapshot recovery request.");
+                    return;
+                }
                 if (frame.Kind != MessageKind.CommandRejected) break;
                 var rejection = new PayloadReader(frame.Payload);
                 ulong rejectedId = rejection.ReadUInt64();
@@ -162,6 +182,7 @@ internal static class PeerSession
             int beforeStep = reader.ReadInt32();
             int afterStep = reader.ReadInt32();
             bool beforePaused = reader.ReadBoolean();
+            int beforeSpeed = reader.ReadInt32();
             ushort count = reader.ReadUInt16();
             if (count > 256) throw new ProtocolException("Tick command count exceeds 256.");
             if (sawTick && sequence != lastSequence + 1) throw new ProtocolException("Tick sequence is not contiguous.");
@@ -180,19 +201,51 @@ internal static class PeerSession
                 commandsSeen.Add(new CommandObservation(sequence, requestId, author, command.GetType().Name));
                 if (author == options.Name && requestId != 0) pending.Remove(requestId);
             }
+            byte[] checkpoint = reader.ReadBytes(32);
             reader.EnsureEnd();
 
             simulation.SetSimPause(beforePaused);
-            simulation.SetSimSpeed(1);
+            if (!DeterministicSimulation.IsSupportedSpeed(beforeSpeed) || afterStep < beforeStep || (long)afterStep > (long)beforeStep + DeterministicSimulation.MaxSpeed)
+                throw new ProtocolException("Invalid tick speed or step bounds.");
+            simulation.SetSimSpeed(beforeSpeed);
             foreach (IInputCommand command in commands) scheduler.ScheduleInputCmd(command);
+            var replayClock = System.Diagnostics.Stopwatch.StartNew();
             update.Invoke(runner, new object[] { 100.ToFix32() });
+            replayClock.Stop();
+            replayMilliseconds += replayClock.Elapsed.TotalMilliseconds;
+            replayMaxMilliseconds = Math.Max(replayMaxMilliseconds, replayClock.Elapsed.TotalMilliseconds);
             if (simulation.CurrentStep.Value != afterStep)
                 throw new ProtocolException($"Tick {sequence}: after-step mismatch, server {afterStep}, peer {simulation.CurrentStep.Value}.");
             foreach (IInputCommand command in commands)
                 if (command.ResultSet && command.HasError)
                     throw new ProtocolException($"Tick {sequence}: replicated command failed: {command.ErrorMessage}");
 
-            using (var acknowledgment = new PayloadWriter())
+            if (options.DivergeAt == localTick)
+            {
+                IEntity changed = resolver.Resolve<EntitiesManager>().GetAllEntitiesOfType<IEntity>().First(e => e.CanBePaused);
+                changed.SetPaused(!changed.IsPaused);
+                Console.WriteLine($"[peer] TEST ONLY deliberately diverged entity {changed.Id.Value} pause at unchanged step {afterStep}.");
+            }
+            bool awaitingRecovery = false;
+            if (checkpoint.Length != 0)
+            {
+                var checkpointClock = System.Diagnostics.Stopwatch.StartNew();
+                byte[] digest = GameplayCheckpoint.Compute(resolver, out double terrainDuration);
+                checkpointClock.Stop();
+                checkpointMilliseconds += checkpointClock.Elapsed.TotalMilliseconds;
+                checkpointMaxMilliseconds = Math.Max(checkpointMaxMilliseconds, checkpointClock.Elapsed.TotalMilliseconds);
+                terrainMilliseconds += terrainDuration;
+                checkpointTimings.Add(new { sequence, step = afterStep, milliseconds = checkpointClock.Elapsed.TotalMilliseconds, terrainMilliseconds = terrainDuration });
+                bool checkpointMatches = digest.SequenceEqual(checkpoint);
+                if (!checkpointMatches && !options.DivergeAt.HasValue) throw new ProtocolException($"Gameplay checkpoint differs at sequence {sequence}, step {afterStep}.");
+                if (checkpointMatches) checkpointsVerified++;
+                if (options.CorruptCheckpoint) digest[0] ^= 1;
+                awaitingRecovery = options.CorruptCheckpoint || !checkpointMatches;
+                Send(stream, CheckpointCodec.Encode(sequence, afterStep, digest), token);
+                Console.WriteLine($"[peer] Gameplay checkpoint {(options.CorruptCheckpoint ? "deliberately corrupted" : checkpointMatches ? "verified" : "detected deliberate local divergence")} at sequence {sequence}, step {afterStep}.");
+            }
+
+            if (!awaitingRecovery) using (var acknowledgment = new PayloadWriter())
             {
                 acknowledgment.WriteUInt64(sequence);
                 acknowledgment.WriteInt32(simulation.CurrentStep.Value);
@@ -201,7 +254,11 @@ internal static class PeerSession
             lastSequence = sequence;
             sawTick = true;
             if (localTick % 25 == 0 || localTick == options.Ticks)
+            {
                 Console.WriteLine($"[peer] Verified {localTick} ticks; sequence {sequence}; step {afterStep}; paused {simulation.IsSimPaused}");
+                process.Refresh();
+                memorySamples.Add(new { localTick, workingSetBytes = process.WorkingSet64, privateBytes = process.PrivateMemorySize64, managedHeapBytes = GC.GetTotalMemory(false) });
+            }
 
             if (options.PauseProposals.TryGetValue(localTick, out bool paused))
             {
@@ -210,12 +267,17 @@ internal static class PeerSession
             if (options.PlaceMachineAt == localTick)
             {
                 CreateStaticEntityCmd placement = FindMachinePlacement(resolver);
-                Propose(placement, $"machine {placement.ProtoId.Value} at {placement.Transform.Position}");
+                var prototype = resolver.Resolve<ProtosDb>().GetOrThrow<MachineProto>(placement.ProtoId);
+                var config = new EntityConfigData(prototype, resolver.Resolve<ConfigSerializationContext>()) { Transform = placement.Transform };
+                Propose(new BatchCreateStaticEntitiesCmd(new Mafi.Collections.ImmutableCollections.ImmutableArray<EntityConfigData>(new[] { config })),
+                    $"native menu batch: {placement.ProtoId.Value} at {placement.Transform.Position}");
             }
             if (options.RejectedSpeedAt == localTick)
-                Propose(new GameSpeedChangeCmd(2), "speed 2 (expected policy rejection)");
+                Propose(new GameSpeedChangeCmd(5), "speed 5 (expected policy rejection)");
+            if (options.SpeedProposals.TryGetValue(localTick, out int speed)) Propose(new GameSpeedChangeCmd(speed), "speed " + speed);
         }
 
+        if (options.CorruptCheckpoint || options.DivergeAt.HasValue) throw new ProtocolException("Divergence fixture completed without receiving a recovery request.");
         if (pending.Count != 0) throw new ProtocolException("Some proposed commands were not observed in authoritative ticks before the harness ended.");
         if (options.RejectedSpeedAt.HasValue && commandsRejected.Count != 1)
             throw new ProtocolException("The speed rejection fixture expected one rejected proposal.");
@@ -228,6 +290,8 @@ internal static class PeerSession
             name = options.Name,
             snapshotStep,
             verifiedTicks = options.Ticks,
+            checkpointsVerified,
+            performance = new { replayMilliseconds, replayMaxMilliseconds, meanReplayMilliseconds = replayMilliseconds / options.Ticks, checkpointMilliseconds, checkpointMaxMilliseconds, terrainMilliseconds, checkpointTimings, memorySamples },
             lastSequence,
             proposalsSent = nextRequestId - 1,
             commandsSeen,

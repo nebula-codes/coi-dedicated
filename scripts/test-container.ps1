@@ -58,11 +58,16 @@ try {
     $port = (Docker-Checked @('inspect', $name) | ConvertFrom-Json)[0].NetworkSettings.Ports.'28551/tcp'[0].HostPort
     $peerArguments = @('run', '--project', (Join-Path $repository 'src/CoiDedicated.Peer'), '-c', 'Release', "-p:GameDir=$GameDir", '--',
         '--game-dir', $GameDir, '--host', '127.0.0.1', '--port', $port, '--secret-file', (Join-Path $work 'join.key'),
-        '--data-dir', (Join-Path $work 'peer'), '--ticks', '100', '--pause-at', '10', '--resume-at', '20',
-        '--reject-speed-at', '30', '--name', 'docker-windows-peer')
+        '--data-dir', (Join-Path $work 'peer'), '--ticks', '400', '--pause-at', '10', '--resume-at', '20',
+        '--speed-at', '40:2', '--speed-at', '100:3', '--speed-at', '180:4', '--speed-at', '300:1',
+        '--reject-speed-at', '30', '--place-machine-at', '220', '--name', 'docker-windows-peer')
     & dotnet @peerArguments *> (Join-Path $work 'peer.log')
     if ($LASTEXITCODE -ne 0) { throw "Windows peer failed; see $work/peer.log" }
-    Write-Host 'PASS Windows gameplay peer replayed 100 ticks and accepted/rejected commands'
+    Write-Host 'PASS Windows gameplay peer replayed 400 ticks, shared speeds 1-4, checkpoints, and native building batch at 4x'
+
+    # These two peers exercise presence framing/expiry only, not simulation parity.
+    & node (Join-Path $repository 'scripts/test-presence.mjs') $port (Join-Path $work 'join.key')
+    if ($LASTEXITCODE -ne 0) { throw 'Container presence relay fixture failed.' }
 
     [void](Docker-Checked @('exec', $name, '/app/control.sh', '--command', 'snapshot', '--output', '/data/test-snapshot.save'))
     [void](Docker-Checked @('cp', "${name}:/data/test-snapshot.save", (Join-Path $work 'snapshot.save')))
@@ -78,7 +83,7 @@ try {
     if ((Get-FileHash -LiteralPath (Join-Path $work 'restarted-join.key')).Hash -ne $keyHash) { throw 'Player key changed after restart.' }
     [void](Stop-And-Check)
     Write-Host 'PASS Persistent volume restored island and preserved player key on restart'
-    [ordered]@{image=$Image; initialStep=$initial.step; stoppedStep=$stopped.SimStep; resumedStep=$resumed.step; windowsPeerTicks=100; result='passed'} |
+    [ordered]@{image=$Image; initialStep=$initial.step; stoppedStep=$stopped.SimStep; resumedStep=$resumed.step; windowsPeerTicks=400; presenceChecks=4; result='passed'} |
         ConvertTo-Json | Set-Content -LiteralPath (Join-Path $work 'results.json')
 }
 finally {

@@ -19,7 +19,7 @@ using UnityEngine;
 
 namespace CoiDedicated.Client;
 
-[BepInPlugin(PluginId, "CoI Dedicated Client Prototype", "0.2.0")]
+[BepInPlugin(PluginId, "CoI Dedicated Client Prototype", "0.5.0")]
 [BepInProcess("Captain of Industry.exe")]
 public sealed class SnapshotPreviewPlugin : BaseUnityPlugin
 {
@@ -32,6 +32,12 @@ public sealed class SnapshotPreviewPlugin : BaseUnityPlugin
     private CancellationTokenSource? download;
     private LiveSession? pendingLive;
     private LiveGameBridge? liveBridge;
+    private PlayerPresence? playerPresence;
+    private BepInEx.Configuration.ConfigEntry<bool>? presenceEnabled;
+    private BepInEx.Configuration.ConfigEntry<bool>? automaticRecovery;
+    private ConnectionSettings? connectionSettings;
+    private readonly ReconnectPolicy reconnect = new ReconnectPolicy();
+    private bool recovering;
     private bool joiningLive;
     private bool autoJoin;
     private bool autoJoinAttempted;
@@ -48,7 +54,7 @@ public sealed class SnapshotPreviewPlugin : BaseUnityPlugin
     private bool patchReady;
     private static bool pauseGuardReady;
     private float nextDiscovery;
-    private Rect window = new Rect(30, 85, 680, 340);
+    private Rect window = new Rect(30, 85, 680, 490);
     internal static bool PreviewActive { get; private set; }
 
     private void Awake()
@@ -60,10 +66,13 @@ public sealed class SnapshotPreviewPlugin : BaseUnityPlugin
             Mafi.Log.LogReceived += OnGameLog;
             buildIdentity = CoiDedicated.GameAdapter.GameBuildIdentity.Compute(Path.GetDirectoryName(typeof(Mafi.Core.Input.InputScheduler).Assembly.Location)!);
             Logger.LogInfo("Game diagnostic log: " + gameLogPath);
-            host = Config.Bind("Connection", "Host", "127.0.0.1", "Dedicated gameplay server host.").Value;
-            port = Config.Bind("Connection", "Port", 28551, "Dedicated gameplay server port.").Value.ToString(CultureInfo.InvariantCulture);
-            keyPath = Config.Bind("Connection", "JoinKeyFile", "", "Path to join.key; key contents are never saved in this config.").Value;
-            clientName = Config.Bind("Connection", "ClientName", "", "Optional name; empty chooses a random client ID.").Value;
+            connectionSettings = new ConnectionSettings(Config);
+            host = connectionSettings.Host;
+            port = connectionSettings.Port.ToString(CultureInfo.InvariantCulture);
+            keyPath = connectionSettings.KeyFile;
+            clientName = connectionSettings.Name;
+            presenceEnabled = Config.Bind("Multiplayer", "ShowAndSharePresence", true, "Show and share camera locations and building footprint previews with connected players.");
+            automaticRecovery = Config.Bind("Multiplayer", "AutomaticReconnect", true, "After a lost connection or failed state check, return to the menu and load a fresh server snapshot. Stops after three attempts; manual disconnect never reconnects automatically.");
             autoJoin = Config.Bind("Connection", "AutoJoinOnce", false, "Join once when the main menu is ready. Disabled by default.").Value;
             foreach (string argument in Environment.GetCommandLineArgs())
             {
@@ -110,7 +119,12 @@ public sealed class SnapshotPreviewPlugin : BaseUnityPlugin
             try { action(); }
             catch (Exception error) { Fail(error); }
         }
-        if (main != null && !main.IsInitializingScene) liveBridge?.Pump();
+        if (main != null && !main.IsInitializingScene)
+        {
+            liveBridge?.Pump();
+            if (liveBridge != null && !liveBridge.IsFrozen) playerPresence?.Update(presenceEnabled?.Value ?? true);
+            PumpRecovery();
+        }
         if (main == null && Time.unscaledTime >= nextDiscovery)
         {
             nextDiscovery = Time.unscaledTime + 1;
@@ -160,7 +174,11 @@ public sealed class SnapshotPreviewPlugin : BaseUnityPlugin
                 try
                 {
                     liveBridge = new LiveGameBridge(loadedResolver, pendingLive, message => { status = message; Logger.LogWarning(message); }, testTicks, testCommands);
+                    try { playerPresence = new PlayerPresence(loadedResolver, pendingLive, message => { status = message; Logger.LogWarning(message); }); }
+                    catch (Exception error) { Logger.LogWarning("Player presence unavailable: " + error.Message); }
                     pendingLive = null;
+                    recovering = false;
+                    reconnect.Connected(Time.unscaledTime);
                     status = "Joined dedicated island. Experimental synchronized ticks; unsupported actions are blocked.";
                     Logger.LogInfo(status);
                 }
@@ -177,11 +195,16 @@ public sealed class SnapshotPreviewPlugin : BaseUnityPlugin
                 pendingLive?.Dispose(); pendingLive = null;
                 status = "Dedicated island failed to load. See the game's load error and BepInEx log.";
                 Logger.LogError(status);
+                ScheduleRecovery();
             }
             return;
         }
-        if (!gameplay && liveBridge != null) { liveBridge.Dispose(); liveBridge = null; }
-        if (!PreviewActive) return;
+        if (!gameplay && liveBridge != null) { liveBridge.Dispose(); liveBridge = null; playerPresence = null; }
+        if (!PreviewActive)
+        {
+            if (recovering && IsMainMenu(main!)) status = "Reconnecting from a fresh server snapshot…";
+            return;
+        }
         if (gameplay)
         {
             pauseGuardReady = true;
@@ -200,7 +223,9 @@ public sealed class SnapshotPreviewPlugin : BaseUnityPlugin
 
     private void OnGUI()
     {
+        if (liveBridge != null && !liveBridge.IsFrozen) playerPresence?.Draw(presenceEnabled?.Value ?? true);
         if (PreviewActive) GUI.Box(new Rect(10, 10, 580, 58), PreviewLabel);
+        else if (recovering) GUI.Box(new Rect(10, 10, 650, 58), "RECONNECTING TO DEDICATED ISLAND\nLoading a fresh server snapshot; F8 to cancel.");
         else if (liveBridge != null) GUI.Box(new Rect(10, 10, 650, 58), liveBridge.IsFrozen
             ? "DEDICATED CONNECTION STOPPED — ISLAND FROZEN\nReturn to the main menu to reconnect. F8 for details."
             : $"DEDICATED MULTIPLAYER PROTOTYPE — STEP {liveBridge.CurrentStep}\nSupported actions only; F8 for connection details.");
@@ -216,27 +241,50 @@ public sealed class SnapshotPreviewPlugin : BaseUnityPlugin
         GUILayout.EndHorizontal();
         GUILayout.Label("Shared key file path (key contents are never shown)");
         keyPath = GUILayout.TextField(keyPath, 4096);
-        GUI.enabled = patchReady && download == null && main != null && !main.IsInitializingScene && liveBridge == null;
+        GUILayout.Label("Live connection details are remembered when you join.");
+        GUI.enabled = liveBridge == null && download == null;
+        GUILayout.Label("Player name (letters, numbers, underscore or hyphen; blank = random)");
+        clientName = GUILayout.TextField(clientName, 64);
+        GUI.enabled = true;
+        if (presenceEnabled != null)
+            presenceEnabled.Value = GUILayout.Toggle(presenceEnabled.Value, "Show and share player cameras and building footprint previews");
+        if (automaticRecovery != null)
+            automaticRecovery.Value = GUILayout.Toggle(automaticRecovery.Value, "Automatically reconnect after connection or state-check failure");
+        GUI.enabled = patchReady && download == null && main != null && !main.IsInitializingScene && liveBridge == null && !recovering;
         if (GUILayout.Button("Join live dedicated island (experimental)")) StartDownload(true);
         if (GUILayout.Button("Download paused snapshot preview (control endpoint)")) StartDownload(false);
         GUI.enabled = true;
-        if (download != null && GUILayout.Button("Cancel download")) download.Cancel();
+        if (recovering && !joiningLive && GUILayout.Button("Cancel automatic reconnect")) CancelRecovery();
+        if (download != null && GUILayout.Button("Cancel download")) { CancelRecovery(); download.Cancel(); }
         if (liveBridge != null && !liveBridge.IsFrozen && GUILayout.Button("Disconnect and freeze this island")) liveBridge.Freeze("Disconnected by player.");
+        if (liveBridge != null && liveBridge.LastVerifiedCheckpoint > 0)
+            GUILayout.Label($"Last verified state checkpoint: tick {liveBridge.LastVerifiedCheckpoint}");
         GUILayout.Label(status);
         GUI.DragWindow(new Rect(0, 0, 650, 25));
     }
 
-    private void StartDownload(bool live)
+    private void StartDownload(bool live, bool automatic = false)
     {
         try
         {
+            if (!automatic) { reconnect.Cancel(); recovering = false; }
             if (main == null || main.IsInitializingScene) throw new InvalidOperationException("Game is still initializing.");
             if (!PreviewActive && !IsMainMenu(main))
                 throw new InvalidOperationException("Return to the main menu before connecting; the current island will not be replaced.");
             if (string.IsNullOrWhiteSpace(host)) throw new ArgumentException("Enter a server hostname.");
+            clientName = clientName.Trim();
+            foreach (char c in clientName)
+                if (!(c >= 'a' && c <= 'z') && !(c >= 'A' && c <= 'Z') && !(c >= '0' && c <= '9') && c != '_' && c != '-')
+                    throw new ArgumentException("Player name must use letters, numbers, underscore or hyphen.");
+            if (clientName == "server") throw new ArgumentException("Choose a player name other than 'server'.");
             if (!int.TryParse(port, NumberStyles.None, CultureInfo.InvariantCulture, out int number) || number < 1 || number > 65535)
                 throw new ArgumentException("Port must be from 1 to 65535.");
-            string key = Path.GetFullPath(keyPath);
+            string key = ConnectionSettings.NormalizeKeyPath(keyPath);
+            // Store a normalized path before the network attempt, so even a temporarily
+            // unreachable host does not make players re-enter it on their next launch.
+            // A control-key snapshot preview must not replace the saved player join key.
+            if (live) connectionSettings?.Save(host, number, key, clientName);
+            keyPath = key;
             string group = "Dedicated Snapshot " + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N").Substring(0, 8);
             string directory = main.FileSystemHelper.GetDirPath(FileType.GameSave, true, group);
             string path = Path.Combine(directory, "server-snapshot.save");
@@ -252,7 +300,14 @@ public sealed class SnapshotPreviewPlugin : BaseUnityPlugin
                     int step = session?.SnapshotStep ?? await SnapshotDownload.DownloadAsync(server, number, key, path, buildIdentity, deadline.Token).ConfigureAwait(false);
                     mainThread.Enqueue(() =>
                     {
+                        bool canceled = deadline.IsCancellationRequested || !ReferenceEquals(download, deadline);
                         FinishDownload(deadline);
+                        if (canceled)
+                        {
+                            session?.Dispose();
+                            status = "Snapshot download canceled.";
+                            return;
+                        }
                         if (main == null || main.IsInitializingScene || (!PreviewActive && !IsMainMenu(main)))
                         {
                             session?.Dispose();
@@ -286,11 +341,77 @@ public sealed class SnapshotPreviewPlugin : BaseUnityPlugin
 
     private static bool IsMainMenu(Main value) => value.CurrentScene.ValueOrNull?.GetType().FullName == "Mafi.Unity.MainMenu.MainMenuScene";
 
+    private void PumpRecovery()
+    {
+        if (automaticRecovery?.Value == false) { if (recovering) CancelRecovery(); return; }
+        if (liveBridge != null && !liveBridge.IsFrozen) reconnect.ObserveHealthy(Time.unscaledTime);
+        if (liveBridge != null && liveBridge.IsFrozen && liveBridge.RecoveryRequested && !recovering)
+        {
+            if (!reconnect.Schedule(Time.unscaledTime))
+            {
+                status = "Automatic reconnect stopped after three attempts. Return to the main menu and join manually. " + liveBridge.FreezeReason;
+                return;
+            }
+            string reason = liveBridge.FreezeReason ?? "Connection stopped.";
+            recovering = true;
+            liveBridge.Dispose(); liveBridge = null; playerPresence = null;
+            PreviewActive = false; pauseGuardReady = false;
+            status = "Reconnecting: " + reason;
+            Logger.LogWarning(status);
+            try { main!.GoToMainMenu(new Mafi.Unity.MainMenu.MainMenuArgs()); }
+            catch (Exception error) { CancelRecovery(); Fail(error); return; }
+        }
+        // A downloaded scene may load but fail while attaching its live bridge.
+        // Leave that paused scene before retrying, rather than waiting for a menu
+        // transition that was never requested.
+        if (recovering && PreviewActive && !joiningLive && main != null && !IsMainMenu(main) && !main.IsInitializingScene)
+        {
+            PreviewActive = false; pauseGuardReady = false;
+            try { main.GoToMainMenu(new Mafi.Unity.MainMenu.MainMenuArgs()); }
+            catch (Exception error) { CancelRecovery(); Fail(error); }
+            return;
+        }
+        if (!recovering || download != null || joiningLive || main == null || !IsMainMenu(main) || main.IsInitializingScene) return;
+        if (!reconnect.TryStart(Time.unscaledTime)) return;
+        if (connectionSettings != null)
+        {
+            host = connectionSettings.Host;
+            port = connectionSettings.Port.ToString(CultureInfo.InvariantCulture);
+            keyPath = connectionSettings.KeyFile;
+            clientName = connectionSettings.Name;
+        }
+        status = $"Reconnecting (attempt {reconnect.Attempts}/{ReconnectPolicy.MaxAttempts})…";
+        Logger.LogInfo(status);
+        StartDownload(true, automatic: true);
+    }
+
+    private void ScheduleRecovery()
+    {
+        if (!recovering) return;
+        if (!reconnect.Schedule(Time.unscaledTime))
+        {
+            recovering = false;
+            status += " Automatic reconnect stopped after three attempts; reconnect manually from F8.";
+            Logger.LogWarning(status);
+        }
+    }
+
+    private void CancelRecovery()
+    {
+        recovering = false;
+        reconnect.Cancel();
+        download?.Cancel();
+        // A manual cancellation must not restart itself from the old frozen bridge.
+        if (liveBridge?.IsFrozen == true) { liveBridge.Dispose(); liveBridge = null; playerPresence = null; }
+        status = "Automatic reconnect canceled. Join again from the main menu when ready.";
+    }
+
     private void Fail(Exception error)
     {
         status = error is OperationCanceledException ? "Snapshot download canceled or timed out." : "Preview error: " + error.Message;
         Logger.LogError(status);
         Logger.LogDebug(error);
+        ScheduleRecovery();
     }
 
     private void OnGameLog(Mafi.Logging.LogEntry entry)

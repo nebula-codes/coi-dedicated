@@ -13,6 +13,10 @@ namespace CoiDedicated.Protocol
         Ack = 8,
         Error = 9,
         Ping = 10,
-        CommandRejected = 11
+        CommandRejected = 11,
+        PresenceUpdate = 12,
+        PresenceSnapshot = 13,
+        CheckpointReply = 14,
+        ResyncRequired = 15
     }
 }

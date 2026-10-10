@@ -13,27 +13,17 @@ IInputCommand decoded = GameCommandCodec.Decode(payload, resolver);
 inputScheduler.ScheduleInputCmd(decoded);
 ```
 
-Payloads start with uint16 schema version `1`, followed by uint16 command kind. All integers are little-endian. Total payload size is at most 512 bytes; strings are strict UTF-8 with the protocol library's uint32 byte-length prefix.
+Payloads start with uint16 schema version `1`, followed by a stable uint16 command ID. All integers are little-endian. Each command is limited to 64 KiB; the server admits at most 512 KiB of command data plus overhead per tick and defers the remaining proposals in order. Strings are strict UTF-8 with bounded uint32 byte lengths.
 
-| Kind | Command | Explicit fields and validation |
-| --- | --- | --- |
-| 1 | `SetSimPauseStateCmd` | Boolean paused |
-| 2 | `GameSpeedChangeCmd` | Int32 speed, `1..20` |
-| 3 | `SetConstructionPriorityCmd` | Positive int32 entity ID; int32 priority `0..14`; existing live static entity |
-| 4 | `MachineSetRecipeActiveCmd` | Positive int32 machine ID; recipe ID string, at most 256 bytes; Boolean enabled; live machine, existing available recipe, and recipe belongs to machine prototype |
-| 5 | `StartDeconstructionOfStaticEntityCmd` | Positive int32 entity ID; Boolean area removal; live static entity; normal removal passes the game's removal validation |
-| 6 | `ToggleStaticEntityConstructionCmd` | Positive int32 entity ID; live static entity that is not fully constructed |
-| 7 (`CreateBuilding`) | `CreateStaticEntityCmd` for ordinary machines and standard storage | Prototype ID; int32 x/y/z and rotation `0..3`; Boolean reflection; available/unlocked exact `MachineProto`, `UnitStorageProto`, `LooseStorageProto`, or `FluidStorageProto`; permitted player construction and reflection; complete footprint inside playable map |
+Compatibility revision **dedicated-prototype-5** covers the expanded command semantics and presence protocol, alongside the exact hashes of the three simulation assemblies. All peers must upgrade together. See [the coverage ledger](../../docs/multiplayer-coverage.md) for the complete distinction between implemented codecs, native tests, and remaining work.
 
-Deconstruction always uses `EntityRemoveReason.Remove`. Collapse is simulation-owned and cannot be requested through this codec. Only exact listed command types encode; subclasses and all other commands return an explicit unsupported reason. Payload parsing rejects trailing bytes, invalid Booleans, unknown versions/kinds, bad UTF-8, and invalid limits before resolving game state.
+The codec covers 199 command classes through 200 explicit schemas. IDs 1-8 cover original controls and native building batches; 20-25 early-game actions and transports; 40-46 research/trading; 60-65 terrain/work areas; 70-80 management; 81-88 surfaces/bridges/rail; 100-252 explicit scalar/reference, logistics, inspector and train controls; 400 typed copied building settings. The scalar tables are compile-time allowlists of exact command classes and constructors. Network data never specifies a CLR type, constructor, reflection path, or opaque game serializer payload.
 
-`Decode` produces a fresh, unscheduled command. Game processors still perform their normal final validation and may reject a command if state changes before execution. Authentication, user permissions, rate limiting, authoritative ordering, and error reconciliation are responsibilities of the session layer.
+Every decode produces a fresh, unscheduled command. Parsing checks bounded values and trailing bytes before resolving live references; typed prototype/entity validation follows. The native game processor performs its normal final placement, cost, and gameplay checks at the ordered tick. Local author clients retain their original input object when the server echoes identical bytes, preserving native UI result and completion behavior.
 
-Building placement always uses normal construction costs and placement validation. Free-construction and validation-suppression flags do not exist in the wire schema; the encoder rejects commands that request either. The allowlist checks exact prototype types, so subclasses and specialized storage remain excluded. The `CreateBuilding` enum name replaces `CreateMachine`; its wire identifier remains `7` and its field layout is unchanged. Other building classes, batch placement, transports (including transport pillars), terrain editing, and broader management commands remain unsupported.
+Native building batches support up to 128 ordinary layout buildings, preserving transforms, reflection, and mini-zipper settings. Free construction, validation suppression and special rail fields in ordinary layout batches are rejected explicitly. The separate typed copied-settings schema accepts ordinary machine/storage settings and rejects unknown fields or external assignment graphs; rail plans use their own bounded schema. Transport plans are bounded to 1024 pivots/hints; mining plans to 1024 aligned designations; work areas to 256 vertices. These bounds and support restrictions are intentional and visible to the player.
 
-A live headless integration probe created separate unconstructed `SmokeStack`, `StorageUnit`, `StorageLoose`, and `StorageFluid` entities through the normal command processor. It first confirmed the three storages were rejected while research-locked, then unlocked each only in the isolated test world before placement. A transport-pillar placement remained rejected. This validates these placement paths; it does not validate all gameplay or storage management commands. The shared greeting uses compatibility revision `dedicated-prototype-2` to reject older adapters with different placement coverage, in addition to comparing the three simulation DLL hashes.
-
-The ranges and field layouts were verified against installed CoI 0.8.7d command types, `SimLoopEvents.SetSimSpeed`, `GeneralPriorities.AssertAssignableRange`, and the corresponding game command processors using focused local decompilation. This does not establish that a complete multiplayer session remains deterministic.
+The presence codec lives in the protocol project and is independent of the command allowlist. It conveys display hints only and cannot schedule construction or mutate the island.
 
 Build and test from the repository root:
 

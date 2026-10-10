@@ -53,6 +53,9 @@ internal sealed class LiveGameBridge : IDisposable
     private readonly Dictionary<string, (IInputCommand Command, bool Success)> testPending = new Dictionary<string, (IInputCommand, bool)>();
     private int testCompleted;
     internal bool IsFrozen { get; private set; }
+    internal bool RecoveryRequested { get; private set; }
+    internal string? FreezeReason { get; private set; }
+    internal ulong LastVerifiedCheckpoint { get; private set; }
     internal int CurrentStep => simulation.CurrentStep.Value;
     internal string ClientName => session.Name;
 
@@ -80,6 +83,7 @@ internal sealed class LiveGameBridge : IDisposable
         RunnerType.GetProperty("RunSimulationInBackgroundThread")!.SetValue(runner, false);
         RunnerType.GetProperty("ExtraSimUpdateMs")!.SetValue(runner, Fix32.Zero);
         simulation.SetSimSpeed(1);
+        DeterministicSimulation.Configure(simulation);
         if (CurrentStep != session.SnapshotStep)
             throw new InvalidOperationException($"Loaded step {CurrentStep} differs from snapshot step {session.SnapshotStep}.");
         Current = this;
@@ -93,7 +97,7 @@ internal sealed class LiveGameBridge : IDisposable
         if (disposed || IsFrozen) return;
         try
         {
-            if (session.Failure != null) throw new InvalidOperationException(session.Failure);
+            if (session.Failure != null) { RecoveryRequested = session.RecoveryRequired; throw new InvalidOperationException(session.Failure); }
             while (session.Rejections.TryDequeue(out LiveRejection rejected))
             {
                 if (!pending.TryGetValue(rejected.RequestId, out var local))
@@ -104,7 +108,7 @@ internal sealed class LiveGameBridge : IDisposable
             if (sinceTick.Elapsed > TimeSpan.FromSeconds(75)) throw new TimeoutException("Server ticks stopped; island held paused.");
             for (int i = 0; i < 4 && !IsFrozen && session.Ticks.TryDequeue(out LiveTick tick); i++) Apply(tick);
         }
-        catch (Exception error) { Freeze(error.GetBaseException().Message); }
+        catch (Exception error) { Freeze(error.GetBaseException().Message, recoverable: true); }
     }
 
     private void Apply(LiveTick tick)
@@ -130,11 +134,27 @@ internal sealed class LiveGameBridge : IDisposable
         }
         // Wire 'paused' is the state before this update, matching GameRunner's sync snapshot.
         simulation.SetSimPause(tick.Paused);
+        simulation.SetSimSpeed(tick.Speed);
         allowTick = true;
         try { UpdateMethod.Invoke(runner, new object[] { 100.ToFix32() }); }
         finally { allowTick = false; admitted.Clear(); }
         if (CurrentStep != tick.AfterStep)
+        {
+            RecoveryRequested = true;
             throw new InvalidOperationException($"Tick {tick.Sequence} ended at {CurrentStep}; server expected {tick.AfterStep}.");
+        }
+        if (tick.Checkpoint.Length != 0)
+        {
+            byte[] digest = GameplayCheckpoint.Compute(resolver);
+            session.Checkpoint(tick.Sequence, CurrentStep, digest);
+            if (!digest.SequenceEqual(tick.Checkpoint))
+            {
+                RecoveryRequested = true;
+                throw new InvalidOperationException($"Gameplay checkpoint mismatch at step {CurrentStep}; reload a fresh server snapshot.");
+            }
+            LastVerifiedCheckpoint = tick.Sequence;
+            report($"Gameplay checkpoint verified at sequence {tick.Sequence}, step {CurrentStep}.");
+        }
         session.Acknowledge(tick.Sequence, CurrentStep);
         if (appliedTicks++ % 100 == 0) report($"Applied authoritative tick {tick.Sequence}: step {tick.BeforeStep} -> {CurrentStep}; client {session.Name}.");
         sinceTick.Restart();
@@ -216,9 +236,9 @@ internal sealed class LiveGameBridge : IDisposable
                 Reject(command, "Disconnected island is held paused; return to the main menu to reconnect.");
                 continue;
             }
-            if (command is GameSpeedChangeCmd speed && speed.NewSpeedMultiplier != 1)
+            if (command is GameSpeedChangeCmd speed && !DeterministicSimulation.IsSupportedSpeed(speed.NewSpeedMultiplier))
             {
-                Reject(command, "This multiplayer prototype uses game speed 1 only.");
+                Reject(command, $"Multiplayer supports game speeds 1 through {DeterministicSimulation.MaxSpeed}.");
                 continue;
             }
             if (!GameCommandCodec.TryEncode(command, out byte[] encoded, out string reason))
@@ -240,10 +260,12 @@ internal sealed class LiveGameBridge : IDisposable
         report(reason);
     }
 
-    internal void Freeze(string reason)
+    internal void Freeze(string reason, bool recoverable = false)
     {
         if (IsFrozen) return;
         IsFrozen = true;
+        FreezeReason = reason;
+        RecoveryRequested = recoverable;
         simulation.SetSimPause(true);
         session.Dispose();
         foreach (var entry in pending.Values)
@@ -259,13 +281,13 @@ internal sealed class LiveGameBridge : IDisposable
         try
         {
             var time = (GameTime)TimeField.GetValue(runner);
-            time.UpdateForSync(delta.ToFloat(), simulation.IsSimPaused, 1, 1, 1,
+            time.UpdateForSync(delta.ToFloat(), simulation.IsSimPaused, simulation.SimStepsPerUpdate, simulation.SimSpeedMult, simulation.SimSpeedMult,
                 CurrentStep, simulation.StepsSinceLoad.Value, 100.ToFix32());
             InputMethod.Invoke(runner, null);
             CaptureCommands();
             RenderMethod.Invoke(runner, null);
         }
-        catch (Exception error) { Freeze(error.GetBaseException().Message); }
+        catch (Exception error) { Freeze(error.GetBaseException().Message, recoverable: true); }
     }
 
     private static bool UpdatePrefix(object __instance, Fix32 deltaTimeMs)
