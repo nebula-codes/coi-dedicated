@@ -4,6 +4,8 @@ The **alpha.6.1 native release** runs the dedicated simulation directly on Linux
 
 The host accepts only the reviewed CoI **0.8.7d** `Mafi`, `Mafi.Core`, and `Mafi.Base` assembly fingerprints. Before each world load it applies a dedicated-process compatibility marker to the game's startup state; it does not initialize Steam or change game files. Unknown game builds stop before island loading rather than receiving an automatic patch. Players still use their normal installed game with the multiplayer client. Player join-key and administrative control-key authentication remain enabled. See the [startup evidence ledger](server-startup-validation.md).
 
+The [alpha.6.1 release](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.6.1) and its native Linux image are published. The [publication workflow](https://github.com/nebula-codes/coi-dedicated/actions/runs/38132914298) built from the checksum-verified public Linux archive and passed application, payload-privacy, entrypoint signal, and migration checks. Anonymous registry access was verified for `ghcr.io/nebula-codes/coi-dedicated:0.1.0-alpha.6.1`, digest `sha256:133dcd10e5ce2007f228cb12f3bc69aab1481da096f32c0a8871a98d13d0023c`, from source commit `2095af8d9aa287d5063d134a4b7fc932ab59ef57`.
+
 ## Portainer stack
 
 Use Docker Standalone on a Linux Intel/AMD 64-bit host. ARM and Docker Swarm are not supported by this stack. Put the complete matching Windows game installation on that Linux host, for example `/srv/coi/game`, preserving filename case. The root executable, Unity files, native libraries, maps, and Managed directory are needed by the game's unchanged file checks. A Windows path on your PC does not refer to a remote Docker host.
