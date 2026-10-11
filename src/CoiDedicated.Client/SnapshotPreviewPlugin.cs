@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using BepInEx;
+using CoiDedicated.Protocol;
 using HarmonyLib;
 using Mafi;
 using Mafi.Collections.ImmutableCollections;
@@ -19,7 +20,7 @@ using UnityEngine;
 
 namespace CoiDedicated.Client;
 
-[BepInPlugin(PluginId, "CoI Dedicated Client Prototype", "0.6.0")]
+[BepInPlugin(PluginId, "CoI Dedicated Client Prototype", "0.6.3")]
 [BepInProcess("Captain of Industry.exe")]
 public sealed class SnapshotPreviewPlugin : BaseUnityPlugin
 {
@@ -288,7 +289,7 @@ public sealed class SnapshotPreviewPlugin : BaseUnityPlugin
             string group = "Dedicated Snapshot " + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N").Substring(0, 8);
             string directory = main.FileSystemHelper.GetDirPath(FileType.GameSave, true, group);
             string path = Path.Combine(directory, "server-snapshot.save");
-            var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(120));
+            var deadline = new CancellationTokenSource(live ? GameSessionTiming.ClientJoinDownloadTimeout : TimeSpan.FromSeconds(120));
             download = deadline;
             status = "Authenticating and downloading snapshot…";
             string server = host.Trim();

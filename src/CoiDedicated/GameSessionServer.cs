@@ -93,7 +93,7 @@ internal sealed class GameSessionServer : IDisposable
     public void Pump(Func<string> save, ISimLoopEvents simulation)
     {
         foreach (Peer peer in worldPeers)
-            if (!peer.Active && DateTime.UtcNow - peer.JoinedAt > TimeSpan.FromSeconds(60)) peer.Close();
+            if (!peer.Active && DateTime.UtcNow - peer.JoinedAt > GameSessionTiming.JoinTimeout) peer.Close();
         worldPeers.RemoveAll(p => p.Closed);
         for (int i = 0; i < 64 && incoming.Reader.TryRead(out Incoming? message); i++)
         {
@@ -111,7 +111,7 @@ internal sealed class GameSessionServer : IDisposable
                         var lease = new SnapshotLease(snapshot, peer.SnapshotStep);
                         peer.PendingSnapshot = lease;
                         if (peer.Closed || !peer.Snapshot.TrySetResult(lease)) lease.Dispose();
-                        Console.WriteLine($"[game] {peer.Name} loading step {peer.SnapshotStep}; simulation waits up to 60s.");
+                        Console.WriteLine($"[game] {peer.Name} loading step {peer.SnapshotStep}; simulation waits up to {GameSessionTiming.JoinTimeout.TotalSeconds:0}s.");
                     }
                     catch (Exception error) { peer.Snapshot.TrySetException(error); peer.Close(); }
                     break;
@@ -285,7 +285,7 @@ internal sealed class GameSessionServer : IDisposable
                     welcome.WriteString(Build, 128);
                     await Welcome(stream, 1, welcome, deadline.Token);
                 }
-                deadline.CancelAfter(TimeSpan.FromSeconds(60));
+                deadline.CancelAfter(GameSessionTiming.JoinTimeout);
                 Enqueue(new Join(peer));
                 using var snapshot = await peer.Snapshot.Task.WaitAsync(deadline.Token);
                 using (FileStream file = snapshot.Take() ?? throw new OperationCanceledException("Joining peer disconnected."))
@@ -304,7 +304,7 @@ internal sealed class GameSessionServer : IDisposable
                     while (!peer.Closed)
                     {
                         using var readDeadline = CancellationTokenSource.CreateLinkedTokenSource(peer.Stop.Token);
-                        readDeadline.CancelAfter(TimeSpan.FromSeconds(75)); // Also covers a different player's join pause.
+                        readDeadline.CancelAfter(GameSessionTiming.PeerIdleTimeout); // Also covers a different player's join pause.
                         frame = await FrameCodec.ReadAsync(stream, readDeadline.Token) ?? throw new EndOfStreamException();
                         reader = new PayloadReader(frame.Payload);
                         if (frame.Kind == MessageKind.Ack)

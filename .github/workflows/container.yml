@@ -6,7 +6,7 @@ on:
       version:
         description: Published Linux release version, without the v prefix
         required: true
-        default: 0.1.0-alpha.6.2
+        default: 0.1.0-alpha.6.3
 
 permissions:
   contents: read

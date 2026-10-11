@@ -1,4 +1,4 @@
-# Native Linux server and browser manager, alpha.6.2. Choose the image explicitly.
+# Native Linux server and browser manager, alpha.6.3. Choose the image explicitly.
 # Preserve the existing data volume; no Steam profile or desktop is needed.
 services:
   coi-server:

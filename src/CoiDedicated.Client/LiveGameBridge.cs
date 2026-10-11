@@ -1,4 +1,5 @@
 using System;
+using CoiDedicated.Protocol;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -115,7 +116,7 @@ internal sealed class LiveGameBridge : IDisposable
                 pending.Remove(rejected.RequestId);
                 Reject(local.Command, rejected.Reason);
             }
-            if (sinceTick.Elapsed > TimeSpan.FromSeconds(75)) throw new TimeoutException("Server ticks stopped; island held paused.");
+            if (sinceTick.Elapsed > GameSessionTiming.PeerIdleTimeout) throw new TimeoutException("Server ticks stopped; island held paused.");
             for (int i = 0; i < 4 && !IsFrozen && session.Ticks.TryDequeue(out LiveTick tick); i++) Apply(tick);
         }
         catch (Exception error) { Freeze(error.GetBaseException().Message, recoverable: true); }

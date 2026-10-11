@@ -6,28 +6,28 @@ An independent dedicated server that runs Captain of Industry's island simulatio
 
 ## Gameplay and synchronization
 
-Current source supports 286 command classes, including all 87 classes missing from the prior UI-observed inventory. It retains native building batches, roads, logistics, truck assignment, camera/tool-preview sharing, pacing at 1–4×, selected-state checkpoints, bounded snapshot recovery, and remembered connection details. Alpha.6.1 retains compatibility revision 6, so existing alpha.6 clients remain compatible. See [the coverage and test ledger](docs/multiplayer-coverage.md) for tested paths and remaining limits; command coverage alone does not prove full gameplay parity.
+Current source supports 286 command classes, including all 87 classes missing from the prior UI-observed inventory. It retains native building batches, roads, logistics, truck assignment, camera/tool-preview sharing, pacing at 1–4×, selected-state checkpoints, bounded snapshot recovery, and remembered connection details. Alpha.6.3 retains compatibility revision 6 and extends the join window to ten minutes. Update the server and every player to use the longer limits. See [the coverage and test ledger](docs/multiplayer-coverage.md) for tested paths and remaining limits; command coverage alone does not prove full gameplay parity.
 
 ## Download the alpha
 
-Download the Windows client and server manager from [alpha.6.1 releases](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.6.1). The server needs your supported game files, but no running Steam client or server-side sign-in. Existing alpha.6 clients do not need reinstalling for this server update.
+Download the Windows client and server manager from [GitHub Releases](https://github.com/nebula-codes/coi-dedicated/releases); consult the [alpha.6.3 release status](docs/releases/v0.1.0-alpha.6.3.md) for download and image availability. The server needs your supported game files, but no running Steam client or server-side sign-in. Install the alpha.6.3 client for every player to use the full ten-minute join window; older alpha.6 clients retain shorter timeouts.
 
 **The old alpha.5 server packages and Docker image are withdrawn from hosting.** Their startup omits the game's Steam initialization and can trigger a delayed pirate game-over. Alpha.6 corrects that startup defect; it does not repair an already-damaged island. Preserve saves and separate backups. See [startup validation and test status](docs/server-startup-validation.md).
 
-Alpha.6 added the missing 87 UI-observed command codecs and compatibility revision 6, including the alpha.5.1 visual interpolation correction. Alpha.6.1 changes server startup without changing the gameplay protocol. Players still need their own matching copy of Captain of Industry and launch it normally. See [alpha.6.1 changes and validation limits](docs/releases/v0.1.0-alpha.6.1.md).
+Alpha.6 added the missing 87 UI-observed command codecs and compatibility revision 6, including the alpha.5.1 visual interpolation correction. Alpha.6.1 changed server startup, alpha.6.2 added the Docker browser manager, and alpha.6.3 extends join timeouts without changing the gameplay protocol. Players still need their own matching copy of Captain of Industry and launch it normally. See [alpha.6.3 changes and validation status](docs/releases/v0.1.0-alpha.6.3.md).
 
 | Package | Start here |
 | --- | --- |
-| `CoI-Multiplayer-Client-0.1.0-alpha.6.1-win-x64.zip` | Extract, close the game, run **Install Client.cmd**. Existing alpha.6 installs can stay in place. Follow the [player guide](docs/player-guide.md). |
-| `CoI-Server-Manager-0.1.0-alpha.6.1-win-x64.zip` | Extract and run **Start Server Manager.cmd**. Follow the [hosting guide](docs/hosting-guide.md). |
+| `CoI-Multiplayer-Client-0.1.0-alpha.6.3-win-x64.zip` | Extract, close the game, run **Install Client.cmd** on every player's PC. Follow the [player guide](docs/player-guide.md). |
+| `CoI-Server-Manager-0.1.0-alpha.6.3-win-x64.zip` | Back up and stop the existing server before updating; extract and run **Start Server Manager.cmd**. Follow the [hosting guide](docs/hosting-guide.md). |
 
 After startup validation is satisfied, sessions remain experimental. Specialized gameplay variants remain unsupported; checkpoints cover selected state, and long-session/full-state determinism is not proven. Back up islands you care about. Share the player `join.key` privately; never publish keys, your saves, or the game installation.
 
-For release changes and tested behavior, see the [alpha.6.1 release notes](docs/releases/v0.1.0-alpha.6.1.md). Source builds are described below. This project's source is MIT-licensed; bundled dependency notices are described in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+Alpha.6.3 passed 13 protocol checks, packaged two-peer TCP testing with an 85-second loading pause, and join-deadline checks at 599 and 601 seconds. Windows package and Docker copied-island lifecycle tests each passed five groups. A ten-minute Unity loading session and deployment on the target NAS remain untested. See the [alpha.6.3 release notes](docs/releases/v0.1.0-alpha.6.3.md) for details and publication status. Source builds are described below. This project's source is MIT-licensed; bundled dependency notices are described in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Docker and Portainer
 
-The alpha.6.2 Docker stack includes the game server **and its browser manager** on Linux amd64. Open `http://YOUR-NAS-IP:28560/` and sign in with the private key at `/data/.manager/admin.key`. The dashboard provides server controls, logs, save backups/import/restore, settings, and player join-key downloads. It stays available while the island is stopped and remembers start/stop intent across container restarts. Existing `/data/island.save` and player/control keys are adopted in place. No Docker socket, Wine, or Steam sign-in is needed. Use the [Docker / Portainer guide](docs/docker-portainer.md) for deployment and migration; retain your existing game path and data-volume name. Existing alpha.6/alpha.6.1 Windows clients remain compatible. **The published alpha.5 Docker image must not be used.**
+The alpha.6.3 Docker stack retains the game server **and its browser manager** introduced in alpha.6.2 on Linux amd64. Open `http://YOUR-NAS-IP:28560/` and sign in with the private key at `/data/.manager/admin.key`. The dashboard provides server controls, logs, save backups/import/restore, settings, and player join-key downloads. It stays available while the island is stopped and remembers start/stop intent across container restarts. Existing `/data/island.save` and player/control keys are adopted in place. No Docker socket, Wine, or Steam sign-in is needed. Use the [Docker / Portainer guide](docs/docker-portainer.md) for deployment and migration; retain your existing game path and data-volume name. Update every Windows client to alpha.6.3 for longer joins. **The published alpha.5 Docker image must not be used.**
 
 ## Server manager from source
 
@@ -78,7 +78,7 @@ Close the game, then install the built plugin:
 .\scripts\install-client.ps1
 ```
 
-Start Captain of Industry normally. At the main menu, press **F8**, enter the server address, port **28551**, and the path to a local copy of `join.key`, then choose **Join live dedicated island**. Each join downloads a verified snapshot into its own save folder. The server briefly holds ticks while the joining client loads, with a 60-second limit, then resumes. It continues running after players disconnect.
+Start Captain of Industry normally. At the main menu, press **F8**, enter the server address, port **28551**, and the path to a local copy of `join.key`, then choose **Join live dedicated island**. Each join downloads a verified snapshot into its own save folder. The server holds ticks while the joining client downloads and loads, with a **600-second (ten-minute) limit** after authentication, then resumes. Update the server and every player to alpha.6.3 so shorter client limits do not interrupt that loading pause. It continues running after players disconnect.
 
 Live join remembers the address, port, name, and full key path across game and PC restarts. Key contents are not stored in configuration. F8 also controls camera/preview sharing and automatic reconnect.
 

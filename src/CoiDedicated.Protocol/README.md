@@ -15,13 +15,15 @@ All integers are little-endian. A frame contains:
 
 The body length must be `4..1048576` bytes, making the maximum payload `1048572` bytes. The length is validated before payload allocation. Both known message kinds and version are validated before payload reading. Payloads can be empty; individual message handlers decide if an empty payload is meaningful.
 
-The stable kind IDs are Hello=1, Welcome=2, SnapshotBegin=3, SnapshotChunk=4, SnapshotEnd=5, Command=6, Tick=7, Ack=8, Error=9, Ping=10, CommandRejected=11, PresenceUpdate=12, PresenceSnapshot=13, CheckpointReply=14, ResyncRequired=15. Gameplay revision 5 is separately enforced by the exact build identity before snapshot transfer.
+The stable kind IDs are Hello=1, Welcome=2, SnapshotBegin=3, SnapshotChunk=4, SnapshotEnd=5, Command=6, Tick=7, Ack=8, Error=9, Ping=10, CommandRejected=11, PresenceUpdate=12, PresenceSnapshot=13, CheckpointReply=14, ResyncRequired=15. Gameplay revision 6 is separately enforced by the exact build identity before snapshot transfer.
 
 Payload strings and byte arrays have their own unsigned 4-byte byte-length prefix. Strings use strict UTF-8, with a default 4096-byte limit. Readers and writers support a smaller per-field limit. Boolean encoding is exactly one byte, `0` or `1`. The framing library does not deserialize object graphs. Game-command payloads use an explicit allowlist; server snapshots are opaque transfers subsequently loaded by the game's native save loader.
 
 ## Gameplay session
 
-The player endpoint uses a fresh HMAC challenge and a distinct join key. After authentication it sends a snapshot automatically. The client validates the length and SHA-256, loads the island, and sends `Ack(Int32 snapshotStep)`. The host holds updates during this join barrier, with a bounded deadline.
+The player endpoint uses a fresh HMAC challenge and a distinct join key. After authentication it sends a snapshot automatically. The client validates the length and SHA-256, loads the island, and sends `Ack(Int32 snapshotStep)`. The host holds updates during this join barrier, with a 600-second deadline starting after authentication. A join that fails to become ready before the deadline is disconnected. Authentication itself is limited to ten seconds.
+
+`GameSessionTiming` shares these limits with the host and client. The client allows 610 seconds for its live join download, including authentication, and its no-tick watchdog and the server's peer-read timeout both allow 615 seconds. The extra margin lets already-connected clients wait through another player's loading pause. These alpha.6.3 timing changes do not alter wire framing or gameplay revision 6. Earlier alpha.6 clients retain their shorter limits, so every player must update to benefit from the full join window.
 
 Live messages use these payloads:
 

@@ -13,6 +13,7 @@
     <Project Path="tests/CoiDedicated.Lifecycle.Tests/CoiDedicated.Lifecycle.Tests.csproj" />
     <Project Path="tests/CoiDedicated.ControlServer.Tests/CoiDedicated.ControlServer.Tests.csproj" />
     <Project Path="tests/CoiDedicated.Protocol.Tests/CoiDedicated.Protocol.Tests.csproj" />
+    <Project Path="tests/CoiDedicated.JoinTimeout.Tests/CoiDedicated.JoinTimeout.Tests.csproj" />
     <Project Path="tests/CoiDedicated.Manager.Tests/CoiDedicated.Manager.Tests.csproj" />
     <Project Path="tests/CoiDedicated.Manager.Storage.Tests/CoiDedicated.Manager.Storage.Tests.csproj" />
     <Project Path="tests/CoiDedicated.Manager.Http.Tests/CoiDedicated.Manager.Http.Tests.csproj" />
