@@ -7,7 +7,7 @@ This experimental Windows x64 package includes the server, browser dashboard, an
 3. Check the game installation folder under **Settings**. If Steam discovery did not find it, enter the folder containing `Captain of Industry_Data` and `Maps`.
 4. Start the island from the dashboard. First startup builds and prepares its save before the server becomes ready.
 
-No SDK, runtime installation, administrator access, or running game window is required. Install Captain of Industry through Steam on the server computer. Match the game and client mod versions on every computer.
+No SDK, runtime installation, administrator access, running Steam client, Steam login, or running game window is required on the server. Supply your own supported game installation. Alpha.6.1 checks the exact CoI 0.8.7d simulation DLL fingerprints and stops before loading an island if they differ. It applies startup compatibility in memory and leaves the game files unchanged. Existing alpha.6 clients remain compatible; every player still needs the same game version.
 
 For LAN play, set the server listen address to `0.0.0.0`. Players use the server computer's LAN address, the player port (default **28551**), and the player join key downloaded from the dashboard. Install the matching client package on each player's computer. The admin control port is **28550** by default; the browser dashboard stays local to the server computer. Allow the player port through your firewall when needed. Share the player `join.key` only with invited players; keep `control.key` private.
 

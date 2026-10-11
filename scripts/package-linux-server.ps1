@@ -1,12 +1,11 @@
 #Requires -Version 7.0
 [CmdletBinding()]
 param(
-    [ValidatePattern('^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$')][string]$Version = '0.1.0-alpha.5',
+    [ValidatePattern('^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$')][string]$Version = '0.1.0-alpha.6.1',
     [string]$GameDir = $env:COI_GAME_DIR,
     [string]$OutputDirectory
 )
 $ErrorActionPreference = 'Stop'
-throw 'Native Linux packaging is disabled: authenticated hosting requires the Windows package under Wine. Use scripts/package-release.ps1 and read docs/docker-portainer.md.'
 $repository = Split-Path $PSScriptRoot -Parent
 if (-not $GameDir) { throw 'Supply -GameDir or set COI_GAME_DIR to your installed Captain of Industry folder.' }
 $GameDir = (Resolve-Path -LiteralPath $GameDir).Path
@@ -32,7 +31,7 @@ foreach ($project in @(
         '-c', 'Release', '-r', 'linux-x64', '--self-contained', 'false',
         '-p:UseAppHost=false', '-p:PublishSingleFile=false', '-p:DebugType=None', '-p:DebugSymbols=false',
         '-o', (Join-Path $package $project.Output), "-p:GameDir=$GameDir", "-p:Version=$Version",
-        "-p:BaseOutputPath=$(Join-Path $work "build/$($project.Output)/")"
+        "--artifacts-path=$(Join-Path $work "build/$($project.Output)")"
     )
     & dotnet @arguments
     if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed: $($project.Name)" }
@@ -54,16 +53,26 @@ foreach ($subdirectory in @('server', 'control')) {
     }
 }
 Copy-Item -LiteralPath (Join-Path $repository 'LICENSE'), (Join-Path $repository 'THIRD-PARTY-NOTICES.md') -Destination $package
-Copy-Item -LiteralPath (Join-Path $repository 'docs/docker-portainer.md') -Destination (Join-Path $package 'README.md')
+$readme = Get-Content -LiteralPath (Join-Path $repository 'docs/docker-portainer.md') -Raw
+$sourceRoot = "https://github.com/nebula-codes/coi-dedicated/blob/v$Version"
+foreach ($file in @('compose.portainer.yml', 'compose.portainer.build.yml')) {
+    $readme = $readme.Replace("(../$file)", "($sourceRoot/$file)")
+}
+foreach ($file in @('server-startup-validation.md', 'player-guide.md', 'multiplayer-coverage.md', 'synchronization.md')) {
+    $readme = $readme.Replace("($file)", "($sourceRoot/docs/$file)")
+}
+$readme | Set-Content -LiteralPath (Join-Path $package 'README.md') -Encoding utf8NoBOM
 [ordered]@{
     version = $Version
     platform = 'linux-x64'
     frameworkDependent = $true
     requiredRuntime = 'Microsoft.NETCore.App 10.0'
     gameVersion = '0.8.7d'
-    compatibility = 'dedicated-prototype-5 / cmd1'
+    compatibility = 'dedicated-prototype-6 / cmd1'
     experimental = $true
     gameFilesIncluded = $false
+    steamClientRequired = $false
+    startupCompatibility = 'exact game assembly fingerprints; dedicated process only'
 } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'release.json') -Encoding utf8NoBOM
 Compress-Archive -LiteralPath $package -DestinationPath $zip -CompressionLevel Optimal
 $sha256 = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()

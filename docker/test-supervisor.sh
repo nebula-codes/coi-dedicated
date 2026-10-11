@@ -1,67 +1,82 @@
-#!/bin/bash
-# Isolated supervisor regression. Run only in a disposable test container.
-set -euo pipefail
+#!/bin/sh
+# Shell integration only: substitute a synthetic host, never load game files.
+# Actual native save/bootstrap cancellation is tested by test-container*.ps1.
+set -eu
 test "${COI_SUPERVISOR_TEST:-}" = 1 || { echo 'Requires COI_SUPERVISOR_TEST=1 in an isolated test container.' >&2; exit 1; }
 entrypoint=${1:-/app/entrypoint.sh}
-function_source=$(sed -n '/^shutdown() {$/,/^}$/p' "$entrypoint")
-steam_function_source=$(sed -n '/^stop_steam() {$/,/^}$/p' "$entrypoint")
-installed_function_source=$(sed -n '/^steam_installed() {$/,/^}$/p' "$entrypoint")
-test -n "$function_source"
-test -n "$steam_function_source"
-test -n "$installed_function_source"
-test ! -e /data/control.key || { echo 'Refusing to overwrite an existing control key.' >&2; exit 1; }
-printf 'isolated-test-placeholder\n' >/data/control.key
-trap 'rm -f /data/control.key' EXIT
-mkdir -p /profile/logs
-run_case() (
-    eval "$function_source"
-    eval "$steam_function_source"
-    eval "$installed_function_source"
-    stopping=0
-    server_pid=''
-    export WINEPREFIX=/tmp/supervisor-test-wine
-    mkdir -p "$WINEPREFIX/drive_c/Steam"
-    touch "$WINEPREFIX/drive_c/Steam/steam.exe"
-    steam_active=1
-    steam_hang=${2:-0}
-    # Simulate a successful command acknowledgement. The actual child exit
-    # happens after the ACK, reproducing a final-save failure in the host.
-    timeout() {
-        if test "$1" = -k; then shift 2; fi
-        shift
-        if test "$1" = /app/control.sh; then printf 'mock ACK\n'; return 0; fi
-        "$@"
-    }
-    pgrep() { test "$steam_active" = 1; }
-    wine() {
-        test "$1" = 'C:\Steam\Steam.exe' && test "$2" = -shutdown
-        if test "$steam_hang" = 0; then steam_active=0; fi
-    }
-    sleep() {
-        # Advance the bounded timeout in the mocked hung-Steam case.
-        if test "$1" = 1; then SECONDS=$((SECONDS + 46)); else command sleep "$@"; fi
-    }
-    wineserver() { return 0; }
-    if test "$1" != none; then
-        (sleep 0.2; exit "$1") &
-        server_pid=$!
-    fi
-    shutdown
-)
-for expected in 0 1; do
+fixture=$(mktemp -d /tmp/coi-entrypoint-test.XXXXXX)
+active_pid=''
+cleanup() {
+    if test -n "$active_pid"; then kill "$active_pid" 2>/dev/null || true; wait "$active_pid" 2>/dev/null || true; fi
+    rm -rf -- "$fixture"
+}
+trap cleanup EXIT INT TERM
+mkdir -p "$fixture/game/Captain of Industry_Data/Managed" "$fixture/game/Captain of Industry_Data/Plugins/x86_64" "$fixture/game/Maps" "$fixture/data" "$fixture/bin"
+for name in Mafi Mafi.Core Mafi.Base; do printf 'fixture' >"$fixture/game/Captain of Industry_Data/Managed/$name.dll"; done
+printf 'fixture' >"$fixture/game/Captain of Industry_Data/Plugins/x86_64/steam_api64.dll"
+printf 'fixture' >"$fixture/game/Maps/New Haven.map"
+# Substitute only fixed mount locations, preserving the actual validation,
+# alias construction, command arguments and exec handoff from the shipped script.
+sed -e "s|/game|$fixture/game|g" -e "s|/data|$fixture/data|g" "$entrypoint" >"$fixture/entrypoint.sh"
+cat >"$fixture/bin/dotnet" <<'HOST'
+#!/bin/sh
+set -eu
+printf '%s\n' "$$" >"$FIXTURE/host.pid"
+printf '%s\n' "$@" >"$FIXTURE/host.args"
+while test "$#" -gt 0; do
+    if test "$1" = --game-dir; then shift; game_view=$1; break; fi
+    shift
+done
+test -r "$game_view/Captain of Industry_Data\\Managed\\Mafi.Core.dll"
+test -r "$game_view/Captain of Industry_Data\\Plugins\\x86_64\\steam_api64.dll"
+printf '%s\n' "$game_view" >"$FIXTURE/game-view"
+if test "${FIXTURE_WAIT:-false}" = true; then
+    trap 'printf "synthetic-final-save\n" >"$FIXTURE/signal-observed"; exit "${FIXTURE_EXIT:-0}"' TERM
+    printf ready >"$FIXTURE/ready"
+    while :; do sleep 0.1; done
+fi
+exit "${FIXTURE_EXIT:-0}"
+HOST
+chmod +x "$fixture/bin/dotnet"
+export FIXTURE="$fixture" PATH="$fixture/bin:$PATH"
+export COI_AUTH_ONLY=false COI_MAP='New Haven' COI_STARTING_FACTORY=true COI_AUTOSAVE_SECONDS=60
+for expected in 0 7; do
     set +e
-    run_case "$expected" >"/tmp/shutdown-$expected.log" 2>&1
+    FIXTURE_EXIT=$expected sh "$fixture/entrypoint.sh" >"$fixture/exit-$expected.log" 2>&1
     actual=$?
     set -e
-    test "$actual" = "$expected" || { cat "/tmp/shutdown-$expected.log"; exit 1; }
+    test "$actual" = "$expected"
 done
-grep -q 'mock ACK' /profile/logs/shutdown.log
-grep -q 'final save is not confirmed' /tmp/shutdown-1.log
-run_case none >/tmp/shutdown-no-host.log 2>&1
+grep -qx -- '--join-secret-file' "$fixture/host.args"
+grep -qx -- "$fixture/data/join.key" "$fixture/host.args"
+grep -qx -- "$fixture/data/control.key" "$fixture/host.args"
+# An obsolete auth-only stack must fail before the fake host is even invoked.
+rm -f "$fixture/host.pid"
 set +e
-run_case 0 1 >/tmp/shutdown-steam-hung.log 2>&1
+COI_AUTH_ONLY=true sh "$fixture/entrypoint.sh" >"$fixture/migration.log" 2>&1
 actual=$?
 set -e
-test "$actual" = 1
-grep -q 'Steam shutdown timed out' /tmp/shutdown-steam-hung.log
-printf 'PASS: host success/final-save failure preserved; normal Steam shutdown; bounded Steam failure; no-world shutdown.\n'
+test "$actual" = 1 && test ! -f "$fixture/host.pid"
+grep -q 'COI_AUTH_ONLY is obsolete' "$fixture/migration.log"
+for expected in 0 7; do
+    rm -f "$fixture/ready" "$fixture/signal-observed"
+    FIXTURE_WAIT=true FIXTURE_EXIT=$expected sh "$fixture/entrypoint.sh" >"$fixture/signal-$expected.log" 2>&1 &
+    active_pid=$!
+    count=0
+    while ! test -f "$fixture/ready"; do
+        kill -0 "$active_pid"
+        count=$((count + 1)); test "$count" -lt 100
+        sleep 0.05
+    done
+    # Prove there is no shell supervisor left between Docker's PID and the host.
+    test "$(cat "$fixture/host.pid")" = "$active_pid"
+    kill -TERM "$active_pid"
+    set +e
+    wait "$active_pid"
+    actual=$?
+    set -e
+    active_pid=''
+    test "$actual" = "$expected"
+    test -s "$fixture/signal-observed"
+done
+printf 'PASS: actual entrypoint aliases and key paths; obsolete setup guard; direct SIGTERM delivery; host success/failure exit status preserved. Synthetic host only.\n'

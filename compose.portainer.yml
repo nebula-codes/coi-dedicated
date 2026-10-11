@@ -1,25 +1,23 @@
-# Published experimental image: ghcr.io/nebula-codes/coi-dedicated:0.1.0-alpha.6.
-# Set COI_IMAGE explicitly; the verified digest is in docs/docker-portainer.md.
-# Start in authentication-only mode; validate on the target host with copied data.
+# Native Linux hosting, alpha.6.1 candidate. Choose the image explicitly.
+# Preserve the existing data volume; no Steam profile or desktop is needed.
 services:
   coi-server:
-    image: "${COI_IMAGE:?Set COI_IMAGE to the reviewed authenticated candidate image}"
+    image: "${COI_IMAGE:?Set COI_IMAGE to the reviewed native Linux image}"
     platform: linux/amd64
     init: true
     restart: unless-stopped
     stop_grace_period: 300s
     read_only: true
-    shm_size: 512m
     cap_drop:
       - ALL
     security_opt:
       - no-new-privileges:true
     ports:
       - "${COI_BIND_IP:-0.0.0.0}:${COI_GAME_PORT:-28551}:28551/tcp"
-      # Keep loopback. Use an SSH tunnel or an authenticated TLS proxy.
-      - "127.0.0.1:${COI_STEAM_UI_PORT:-28680}:6080/tcp"
     environment:
-      COI_AUTH_ONLY: "${COI_AUTH_ONLY:-true}"
+      # Reject an old auth-only deployment before it can load an island.
+      # Remove COI_AUTH_ONLY from the stack environment during migration.
+      COI_AUTH_ONLY: "${COI_AUTH_ONLY:-false}"
       COI_MAP: "${COI_MAP:-New Haven}"
       COI_STARTING_FACTORY: "${COI_STARTING_FACTORY:-true}"
       COI_AUTOSAVE_SECONDS: "${COI_AUTOSAVE_SECONDS:-60}"
@@ -33,16 +31,13 @@ services:
       - type: volume
         source: coi-data
         target: /data
-      - type: volume
-        source: coi-steam-profile
-        target: /profile
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=512m
     healthcheck:
       test: ["CMD", "/app/healthcheck.sh"]
       interval: 30s
-      timeout: 40s
-      start_period: 10m
+      timeout: 35s
+      start_period: 5m
       retries: 3
     logging:
       driver: json-file
@@ -53,5 +48,3 @@ services:
 volumes:
   coi-data:
     name: "${COI_DATA_VOLUME:-coi-dedicated-data}"
-  coi-steam-profile:
-    name: "${COI_STEAM_VOLUME:-coi-dedicated-steam-private}"

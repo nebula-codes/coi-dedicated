@@ -28,6 +28,8 @@ internal static class Program
             foreach (string name in new[] { "Mafi", "Mafi.Core", "Mafi.Base" })
                 if (!File.Exists(Path.Combine(managed, name + ".dll")))
                     throw new FileNotFoundException($"Missing {name}.dll. Supply --game-dir with the game installation.");
+            // Reject game updates before bootstrap can create or replace a save.
+            if (!options.Inspect) ServerGameCompatibility.Validate(options.GameDirectory);
             Directory.CreateDirectory(options.DataDirectory);
             using FileStream? serverLease = options.Serve && !options.Inspect
                 ? new FileStream(Path.Combine(options.DataDirectory, ".server.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None)

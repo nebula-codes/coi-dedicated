@@ -6,7 +6,6 @@ param(
     [Parameter(Mandatory = $true)][string]$SaveFile
 )
 $ErrorActionPreference = 'Stop'
-throw 'This archived test targets the unauthenticated native Linux image and cannot validate the Wine/Steam stack. See docs/docker-portainer.md for current validation requirements.'
 if (-not $GameDir) { $GameDir = 'F:\SteamLibrary\steamapps\common\Captain of Industry' }
 $GameDir = (Resolve-Path -LiteralPath $GameDir).Path
 $SaveFile = (Resolve-Path -LiteralPath $SaveFile).Path
@@ -30,12 +29,12 @@ try {
     [void](Docker-Checked @('volume', 'create', $volume))
     # The image's app user owns a fresh /data volume. Only this copied fixture is
     # writable; the user's game installation and input save remain read-only.
-    [void](Docker-Checked @('run', '--rm', '--read-only', '--cap-drop', 'ALL',
+    [void](Docker-Checked @('run', '--rm', '--network', 'none', '--read-only', '--cap-drop', 'ALL',
         '--security-opt', 'no-new-privileges:true', '--entrypoint', '/bin/sh',
         '--mount', "type=bind,source=$SaveFile,target=/fixture.save,readonly",
         '--mount', "type=volume,source=$volume,target=/data",
         $Image, '-c', 'cp /fixture.save /data/island.save'))
-    [void](Docker-Checked @('run', '-d', '--name', $name, '--init', '--read-only',
+    [void](Docker-Checked @('run', '-d', '--name', $name, '--init', '--network', 'none', '--read-only',
         '--tmpfs', '/tmp:rw,noexec,nosuid,size=128m', '--cap-drop', 'ALL',
         '--security-opt', 'no-new-privileges:true',
         '--mount', "type=bind,source=$GameDir,target=/game,readonly",
@@ -62,7 +61,7 @@ try {
     if (-not $observedChild) { throw 'Did not observe a live canonicalization child within 45 seconds.' }
 
     $stopwatch = [Diagnostics.Stopwatch]::StartNew()
-    [void](Docker-Checked @('stop', '--timeout', '30', $name))
+    [void](Docker-Checked @('stop', '--timeout', '300', $name))
     $stopwatch.Stop()
     $state = (Docker-Checked @('inspect', $name) | ConvertFrom-Json)[0].State
     if ($state.Running -or $state.Pid -ne 0 -or $state.ExitCode -ne 0 -or $state.OOMKilled) {
@@ -99,7 +98,7 @@ try {
 finally {
     if ($created) {
         & docker logs $name *> (Join-Path $work 'container.log')
-        & docker stop --timeout 30 $name *> $null
+        & docker stop --timeout 300 $name *> $null
         & docker rm $name *> $null
     }
     # Keep this isolated volume and evidence for inspection. Never remove user data.

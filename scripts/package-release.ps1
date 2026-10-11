@@ -1,7 +1,7 @@
 #Requires -Version 7.0
 [CmdletBinding()]
 param(
-    [ValidatePattern('^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$')][string]$Version = '0.1.0-alpha.6',
+    [ValidatePattern('^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$')][string]$Version = '0.1.0-alpha.6.1',
     [string]$GameDir = $env:COI_GAME_DIR,
     [string]$OutputDirectory
 )
@@ -41,11 +41,10 @@ $bepArchive = Join-Path $dependencies 'BepInEx_win_x64_5.4.23.5.zip'
 Download-Checked 'https://github.com/BepInEx/BepInEx/releases/download/v5.4.23.5/BepInEx_win_x64_5.4.23.5.zip' $bepArchive '82F9878551030F54657792C0740D9D51A09500EEAE1FBA21106B0C441E6732C4'
 $bep = Join-Path $work 'BepInEx'
 Expand-Archive -LiteralPath $bepArchive -DestinationPath $bep
-Build-Project -BuildArgs @('build', (Join-Path $repository 'src\CoiDedicated.Client\CoiDedicated.Client.csproj'), '-c', 'Release', '-p:DebugType=None', '-p:DebugSymbols=false', '-o', (Join-Path $work 'client-build'), "-p:GameDir=$GameDir", "-p:BepInExDir=$(Join-Path $bep 'BepInEx\core')", "-p:BaseOutputPath=$(Join-Path $work 'build\client\')", "-p:Version=$Version")
-Build-Project -BuildArgs @('publish', (Join-Path $repository 'src\CoiDedicated\CoiDedicated.csproj'), '-c', 'Release', '-p:DebugType=None', '-p:DebugSymbols=false', '-r', 'win-x64', '--self-contained', 'true', '-p:UseAppHost=true', '-p:PublishSingleFile=false', '-o', (Join-Path $server 'bin\server'), "-p:GameDir=$GameDir", "-p:BaseOutputPath=$(Join-Path $work 'build\host\')", "-p:Version=$Version")
-Build-Project -BuildArgs @('publish', (Join-Path $repository 'src\CoiDedicated.Manager\CoiDedicated.Manager.csproj'), '-c', 'Release', '-p:DebugType=None', '-p:DebugSymbols=false', '-r', 'win-x64', '--self-contained', 'true', '-p:PublishSingleFile=false', '-o', (Join-Path $server 'bin\manager'), "-p:BaseOutputPath=$(Join-Path $work 'build\manager\')", "-p:Version=$Version")
+Build-Project -BuildArgs @('build', (Join-Path $repository 'src\CoiDedicated.Client\CoiDedicated.Client.csproj'), '-c', 'Release', '-p:DebugType=None', '-p:DebugSymbols=false', '-o', (Join-Path $work 'client-build'), "-p:GameDir=$GameDir", "-p:BepInExDir=$(Join-Path $bep 'BepInEx\core')", "--artifacts-path=$(Join-Path $work 'build\client')", "-p:Version=$Version")
+Build-Project -BuildArgs @('publish', (Join-Path $repository 'src\CoiDedicated\CoiDedicated.csproj'), '-c', 'Release', '-p:DebugType=None', '-p:DebugSymbols=false', '-r', 'win-x64', '--self-contained', 'true', '-p:UseAppHost=true', '-p:PublishSingleFile=false', '-o', (Join-Path $server 'bin\server'), "-p:GameDir=$GameDir", "--artifacts-path=$(Join-Path $work 'build\host')", "-p:Version=$Version")
+Build-Project -BuildArgs @('publish', (Join-Path $repository 'src\CoiDedicated.Manager\CoiDedicated.Manager.csproj'), '-c', 'Release', '-p:DebugType=None', '-p:DebugSymbols=false', '-r', 'win-x64', '--self-contained', 'true', '-p:PublishSingleFile=false', '-o', (Join-Path $server 'bin\manager'), "--artifacts-path=$(Join-Path $work 'build\manager')", "-p:Version=$Version")
 Build-Project -BuildArgs @('publish', (Join-Path $repository 'src\CoiDedicated.Control\CoiDedicated.Control.csproj'), '-c', 'Release', '-p:DebugType=None', '-p:DebugSymbols=false', '-r', 'win-x64', '--self-contained', 'true', '-p:PublishSingleFile=false', '-o', (Join-Path $server 'bin\control'), "--artifacts-path=$(Join-Path $work 'build\control')", "-p:Version=$Version")
-Build-Project -BuildArgs @('publish', (Join-Path $repository 'src\CoiDedicated.SteamCheck\CoiDedicated.SteamCheck.csproj'), '-c', 'Release', '-p:DebugType=None', '-p:DebugSymbols=false', '-r', 'win-x64', '--self-contained', 'true', '-p:PublishSingleFile=false', '-o', (Join-Path $server 'bin\steam-check'), "--artifacts-path=$(Join-Path $work 'build\steam-check')", "-p:Version=$Version")
 
 $pluginDestination = Join-Path $clientPayload 'BepInEx\plugins\CoiDedicated'
 [void][IO.Directory]::CreateDirectory($pluginDestination)

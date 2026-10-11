@@ -31,7 +31,7 @@ internal static class GameHost
         // This call also exercises the game's static initialization outside Unity.
         Console.WriteLine($"Fixed-point arithmetic: {(1.ToFix32() + 2.ToFix32()).ToString()}");
         if (options.Inspect) return 0;
-        using var steam = NativeSteamSession.Start(options.GameDirectory);
+        ServerStartup.Initialize(options.GameDirectory);
         var fs = new FileSystemHelper(options.DataDirectory, options.GameDirectory);
         Assembly coreAssembly = typeof(CoreMod).Assembly;
         Assembly baseAssembly = typeof(BaseMod).Assembly;

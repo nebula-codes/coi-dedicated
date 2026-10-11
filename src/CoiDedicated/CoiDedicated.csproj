@@ -9,6 +9,8 @@
     <GameManagedDir>$(GameDir)\Captain of Industry_Data\Managed</GameManagedDir>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Retained only by the separate legacy authentication diagnostic tool. -->
+    <Compile Remove="NativeSteamSession.cs" />
     <ProjectReference Include="..\CoiDedicated.Protocol\CoiDedicated.Protocol.csproj" />
     <ProjectReference Include="..\CoiDedicated.GameAdapter\CoiDedicated.GameAdapter.csproj" />
     <Reference Include="Mafi"><HintPath>$(GameManagedDir)\Mafi.dll</HintPath><Private>false</Private></Reference>

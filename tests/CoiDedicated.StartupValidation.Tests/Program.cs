@@ -87,12 +87,13 @@ internal static class Program
         int start = sim.CurrentStep.Value, year = calendar.CurrentDate.Year;
         int originalPopulation = settlements.GetTotalPopulation();
         Vehicle[] originalVehicles = entities.GetAllEntitiesOfType<Vehicle>().ToArray();
+        int[] originalVehicleIds = originalVehicles.Select(v => v.Id.Value).OrderBy(id => id).ToArray();
         Check(year >= 10, "Fixture must already be in year 10 or later.");
         Check(originalPopulation > 0 && !gameOver.IsGameOver, "Fixture must be alive before testing.");
         Check(originalVehicles.Length > 0 && !originalVehicles.Any(v => v.IsOnWayToDepotForScrap), "Fixture needs vehicles with no pending scrap.");
         string[] startupCallbacks = PirateCallbacks(entities.StaticEntityAdded);
-        bool connectedDiagnostic = Log.DebugInfos.Contains("Steam client connected");
-        Console.WriteLine($"[test] step={start} year={year} population={originalPopulation} vehicles={originalVehicles.Length} pirateCallbacks={startupCallbacks.Length} steamConnectedDiagnostic={connectedDiagnostic}");
+        bool steamCompatibilityMarkerPresent = Log.DebugInfos.Contains("Steam client connected");
+        Console.WriteLine($"[test] step={start} year={year} population={originalPopulation} vehicles={originalVehicles.Length} pirateCallbacks={startupCallbacks.Length} steamCompatibilityMarkerPresent={steamCompatibilityMarkerPresent} expectServerOnly={options.ExpectServerOnly}");
 
         var storage = protos.All<LayoutEntityProto>().Where(p => p.GetType().Name == "UnitStorageProto"
                 && p.IsUnlockedAndAvailable && !p.CannotBeBuiltByPlayer && !p.IsAutoBuiltByParent)
@@ -155,16 +156,28 @@ internal static class Program
         }
         string[] PirateLogs() { lock (messages) return messages.Where(m => m.Contains("Pirates raided our island", StringComparison.OrdinalIgnoreCase)).ToArray(); }
         string[] pirateLogs = PirateLogs();
+        // This exact native error accompanied product destruction in the retained
+        // failing-host regression. Ordinary consumption is not an error.
+        string[] productDestructionErrors;
+        lock (messages) productDestructionErrors = messages.Where(m => m.Contains("Null or phantom product destroyed.", StringComparison.Ordinal)).ToArray();
         string[] pendingCallbacks = PirateCallbacks(sim.Update);
+        var finalVehicleIds = entities.GetAllEntitiesOfType<Vehicle>().Select(v => v.Id.Value).ToHashSet();
+        int[] missingOriginalVehicleIds = originalVehicleIds.Where(id => !finalVehicleIds.Contains(id)).ToArray();
+        string[] steamworksAssemblies = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName().Name)
+            .Where(name => name?.StartsWith("Facepunch.Steamworks", StringComparison.OrdinalIgnoreCase) == true)
+            .Select(name => name!).OrderBy(name => name, StringComparer.Ordinal).ToArray();
         int finalPopulation = settlements.GetTotalPopulation();
         int finalStep = sim.CurrentStep.Value;
         var report = new
         {
-            ExpectTrigger = options.ExpectTrigger, HostPath = hostPath, HostSha256 = Hash(hostPath), FixtureSha256 = Hash(fixture),
+            ExpectTrigger = options.ExpectTrigger, ExpectServerOnly = options.ExpectServerOnly,
+            HostPath = hostPath, HostSha256 = Hash(hostPath), FixtureSha256 = Hash(fixture),
             StartStep = start, Year = year, StartPopulation = originalPopulation, EndPopulation = finalPopulation, MinimumPopulation = minimumPopulation,
-            OriginalVehicleCount = originalVehicles.Length, MaximumVehiclesPendingScrap = maximumScrapping, FirstGameOverStep = firstGameOver,
-            GameOver = gameOver.IsGameOver, SteamConnectedDiagnostic = connectedDiagnostic, StartupCallbacks = startupCallbacks,
-            PendingCallbacks = pendingCallbacks, PirateLogs = pirateLogs, BuildingPrototype = storage.Id.Value,
+            OriginalVehicleCount = originalVehicles.Length, OriginalVehicleIds = originalVehicleIds, MissingOriginalVehicleIds = missingOriginalVehicleIds,
+            MaximumVehiclesPendingScrap = maximumScrapping, FirstGameOverStep = firstGameOver,
+            GameOver = gameOver.IsGameOver, SteamCompatibilityMarkerPresent = steamCompatibilityMarkerPresent,
+            SteamworksAssemblies = steamworksAssemblies, StartupCallbacks = startupCallbacks,
+            PendingCallbacks = pendingCallbacks, PirateLogs = pirateLogs, ProductDestructionErrors = productDestructionErrors, BuildingPrototype = storage.Id.Value,
             BuildingsCreated = ids.Count, ExaminedPositions = examinedPositions, BoundaryIds = ids.Where(id => id % 100 == 0).ToArray(),
             BuildEndStep = afterBuild, EndStep = finalStep, SoakSteps = finalStep - afterBuild, UpdateCalls = updates, Placements = placements
         };
@@ -172,19 +185,25 @@ internal static class Program
         lock (messages) File.WriteAllLines(Path.Combine(options.Output, "native-game.log"), messages);
         if (options.ExpectTrigger)
         {
-            Check(!connectedDiagnostic && startupCallbacks.Length > 0, "Baseline did not reproduce unvalidated startup registration.");
+            Check(!steamCompatibilityMarkerPresent && startupCallbacks.Length > 0, "Baseline did not reproduce unvalidated startup registration.");
             Check(pirateLogs.Length > 0 && firstGameOver >= 0 && gameOver.IsGameOver && finalPopulation == 0,
                 "Expected baseline pirate event and population removal were not reproduced.");
             Console.WriteLine("PASS expected old-host failure reproduced: real buildings triggered native pirate game-over and removed population.");
         }
         else
         {
-            Check(connectedDiagnostic && startupCallbacks.Length == 0, "Native successful startup validation was absent or pirate callback was registered.");
+            Check(steamCompatibilityMarkerPresent && startupCallbacks.Length == 0, "Startup compatibility marker was absent or pirate callback was registered.");
+            if (options.ExpectServerOnly)
+                Check(steamworksAssemblies.Length == 0, "Server-only startup loaded a Facepunch.Steamworks assembly.");
             Check(finalStep - afterBuild >= SoakSteps, "Simulation did not advance beyond the full native delayed-trigger interval.");
             Check(pirateLogs.Length == 0 && pendingCallbacks.Length == 0 && !gameOver.IsGameOver && firstGameOver < 0, "Native pirate game-over activated.");
             Check(minimumPopulation > 0 && finalPopulation > 0, "Population was wiped out.");
             Check(maximumScrapping == 0, "The fixture's vehicles were unexpectedly sent for scrap.");
-            Console.WriteLine("PASS validated startup: ordinary building commands and full delayed-trigger soak preserved the island.");
+            Check(missingOriginalVehicleIds.Length == 0, "Original vehicles disappeared from the island: " + string.Join(',', missingOriginalVehicleIds));
+            Check(productDestructionErrors.Length == 0, "Native product destruction reported a null or phantom product error.");
+            Console.WriteLine(options.ExpectServerOnly
+                ? "PASS server-only startup: Steamworks was not loaded, and ordinary building commands and full delayed-trigger soak preserved the island."
+                : "PASS validated startup: ordinary building commands and full delayed-trigger soak preserved the island.");
         }
     }
 
@@ -217,16 +236,17 @@ internal static class Program
     private static void Check(bool value, string reason) { if (!value) throw new InvalidOperationException(reason); }
     private static string Hash(string path) => Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path)));
 
-    private sealed record Arguments(string Source, string Output, string HostDirectory, string GameDirectory, bool ExpectTrigger)
+    private sealed record Arguments(string Source, string Output, string HostDirectory, string GameDirectory, bool ExpectTrigger, bool ExpectServerOnly)
     {
         public static Arguments Parse(string[] args)
         {
             string? source = null, output = null, host = null;
             string game = Environment.GetEnvironmentVariable("COI_GAME_DIR") ?? @"F:\SteamLibrary\steamapps\common\Captain of Industry";
-            bool expected = false;
+            bool expected = false, serverOnly = false;
             for (int i = 0; i < args.Length; i++)
             {
                 if (args[i] == "--expect-trigger") { expected = true; continue; }
+                if (args[i] == "--expect-server-only") { serverOnly = true; continue; }
                 string value = i + 1 < args.Length ? args[++i] : throw new ArgumentException("Missing option value.");
                 switch (args[i - 1])
                 {
@@ -238,8 +258,9 @@ internal static class Program
                 }
             }
             if (source is null || output is null || host is null)
-                throw new ArgumentException("Required: --source-save SAVE --output FRESH_DIR --host-dir HOST_DIR [--game-dir GAME_DIR] [--expect-trigger]");
-            return new(Path.GetFullPath(source), Path.GetFullPath(output), Path.GetFullPath(host), Path.GetFullPath(game), expected);
+                throw new ArgumentException("Required: --source-save SAVE --output FRESH_DIR --host-dir HOST_DIR [--game-dir GAME_DIR] [--expect-trigger | --expect-server-only]");
+            if (expected && serverOnly) throw new ArgumentException("--expect-trigger and --expect-server-only cannot be combined.");
+            return new(Path.GetFullPath(source), Path.GetFullPath(output), Path.GetFullPath(host), Path.GetFullPath(game), expected, serverOnly);
         }
     }
 }

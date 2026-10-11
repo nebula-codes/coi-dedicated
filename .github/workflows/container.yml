@@ -1,12 +1,12 @@
-name: Publish experimental Wine container
+name: Publish experimental native Linux container
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: Published release version, without the v prefix
+        description: Published Linux release version, without the v prefix
         required: true
-        default: 0.1.0-alpha.6
+        default: 0.1.0-alpha.6.1
 
 permissions:
   contents: read
@@ -18,15 +18,15 @@ concurrency:
 
 jobs:
   publish:
-    # Publish manually after the matching host passes the documented runtime checks.
+    # Dispatch only after matching host lifecycle/replay tests pass locally.
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 30
     env:
       IMAGE: ghcr.io/nebula-codes/coi-dedicated
       REQUESTED_VERSION: ${{ inputs.version }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Resolve the matching release and archive checksum
+      - name: Resolve the matching Linux release and archive checksum
         shell: bash
         run: |
           set -euo pipefail
@@ -34,11 +34,11 @@ jobs:
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$ ]]; then
             echo 'Invalid release version'; exit 1
           fi
-          ARCHIVE="CoI-Server-Manager-$VERSION-win-x64.zip"
+          ARCHIVE="CoI-Dedicated-Server-$VERSION-linux-x64.zip"
           RELEASE_URL="https://github.com/$GITHUB_REPOSITORY/releases/download/v$VERSION"
-          curl --fail --show-error --location --retry 3 "$RELEASE_URL/SHA256SUMS.txt" -o checksums.txt
+          curl --fail --show-error --location --retry 3 "$RELEASE_URL/SHA256SUMS-linux.txt" -o checksums.txt
           SHA="$(awk -v file="$ARCHIVE" '{ sub(/\r$/, "", $0) } $2 == file {print $1}' checksums.txt)"
-          if [[ ! "$SHA" =~ ^[a-fA-F0-9]{64}$ ]]; then echo 'Missing or ambiguous Windows archive checksum'; exit 1; fi
+          if [[ ! "$SHA" =~ ^[a-fA-F0-9]{64}$ ]]; then echo 'Missing or ambiguous Linux archive checksum'; exit 1; fi
           printf 'VERSION=%s\nSERVER_ARCHIVE_SHA256=%s\nSERVER_ARCHIVE_URL=%s/%s\n' "$VERSION" "$SHA" "$RELEASE_URL" "$ARCHIVE" >> "$GITHUB_ENV"
       - name: Build from the checksum-pinned distributable
         run: |
@@ -50,16 +50,17 @@ jobs:
             --tag "$IMAGE:$VERSION" --tag "$IMAGE:alpha" .
       - name: Verify application starts without bundled game files
         run: |
-          docker run --rm --init --network none --entrypoint xvfb-run "$IMAGE:$VERSION" -a bash -euc '
-            WINEDLLOVERRIDES="mscoree,mshtml=" timeout 180 wineboot -u >/dev/null 2>&1
-            timeout 45 wine /app/server/CoiDedicated.exe --help
-            timeout 45 wine /app/control/CoiDedicated.Control.exe --help
-            wineserver -k
+          docker run --rm --init --network none --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,size=128m --cap-drop ALL \
+            --security-opt no-new-privileges:true --entrypoint sh "$IMAGE:$VERSION" -euc '
+            dotnet /app/server/CoiDedicated.dll --help
+            dotnet /app/control/CoiDedicated.Control.dll --help
+            test -z "$(find /app -iname "Mafi*.dll" -o -iname "UnityEngine*.dll" -o -name "*.key" -o -name "*.save")"
+            test ! -e /app/steam-ui.sh
           '
-          docker run --rm --entrypoint sh "$IMAGE:$VERSION" -c 'test -z "$(find /app -iname "Mafi*.dll" -o -iname "UnityEngine*.dll" -o -name "*.key" -o -name "*.save")"'
-      - name: Verify bounded save and Steam shutdown handling
+      - name: Verify entrypoint signals, exit status and migration guard
         run: |
-          docker run --rm --network none --entrypoint bash \
+          docker run --rm --init --network none --entrypoint sh \
             -e COI_SUPERVISOR_TEST=1 \
             --mount "type=bind,src=$GITHUB_WORKSPACE/docker/test-supervisor.sh,dst=/tmp/test-supervisor.sh,readonly" \
             "$IMAGE:$VERSION" /tmp/test-supervisor.sh

@@ -199,7 +199,7 @@ internal static class Tests
         try
         {
             for (int i = 0; i < names.Length; i++) File.WriteAllText(Path.Combine(directory, names[i]), values[i]);
-            const string expected = "CoI 0.8.7d / dedicated-prototype-5 / cmd1 / 10d29925e454831bda13ad914a68598350c19ad94721b1022dc37c2f956e9454";
+            const string expected = "CoI 0.8.7d / dedicated-prototype-6 / cmd1 / 10d29925e454831bda13ad914a68598350c19ad94721b1022dc37c2f956e9454";
             Check(GameBuildIdentity.Compute(directory) == expected, "Combined identity did not match the independent SHA-256 fixture.");
             Check(System.Text.Encoding.UTF8.GetByteCount(expected) <= 128, "Build identity exceeds handshake limit.");
             for (int i = 0; i < names.Length; i++)
