@@ -1,5 +1,6 @@
-# Experimental authenticated hosting candidate. See docs/docker-portainer.md.
-# No corrected public image is assumed. Start in authentication-only mode.
+# Optional source build; published image: ghcr.io/nebula-codes/coi-dedicated:0.1.0-alpha.6.
+# Set COI_IMAGE explicitly. See docs/docker-portainer.md for the published digest.
+# Start in authentication-only mode; validate on the target host with copied data.
 services:
   coi-server:
     image: "${COI_IMAGE:?Set COI_IMAGE to the reviewed authenticated candidate image}"

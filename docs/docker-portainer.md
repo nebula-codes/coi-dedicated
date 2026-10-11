@@ -1,8 +1,8 @@
-# Authenticated Docker / Portainer hosting candidate
+# Experimental authenticated Docker / Portainer hosting
 
 **Deployment of the published alpha.5 Docker image remains paused.** Its missing Steam startup validation can cause a delayed pirate game-over and damage an island. Preserve its data volume and separate backups. Do not resume that image. The corrected native Linux host refuses to load an island because it cannot run the installed Windows Steam wrapper. See the [startup incident and validation ledger](server-startup-validation.md).
 
-The Docker files in the current source are an **experimental replacement**, using the Windows server and genuine Windows Steam client together under Wine. **Authentication-only mode is the default: no island loads.** Local tests passed genuine authentication, island startup stress, and native peer replay using Steam's normal Offline Mode. An online session using the playing PC's account was disconnected with `Logged In Elsewhere`. The evidence and remaining target-host checks are recorded below; use a copied island for validation before moving live data.
+The **published experimental replacement** is `ghcr.io/nebula-codes/coi-dedicated:0.1.0-alpha.6`, using the Windows server and genuine Windows Steam client together under Wine. **Authentication-only mode is the default: no island loads.** Local tests passed genuine authentication, island startup stress, and native peer replay using Steam's normal Offline Mode. An online session using the playing PC's account was disconnected with `Logged In Elsewhere`. The target NAS/Portainer machine has not been tested; use a copied island for validation before moving live data.
 
 ## Why this needs a real Steam client
 
@@ -14,7 +14,7 @@ For simultaneous **online Steam sessions**, plan for a **separate hosting Steam 
 
 Steam also provides a normal Offline Mode using locally retained login and game information. Selecting it through Steam's own UI passed the unchanged ownership checks, island startup stress test, and native peer replay in the isolated Wine environment. Full container lifecycle and target-host verification are recorded below. This project does not simulate Offline Mode by modifying credentials, patching checks, or blocking network traffic. Follow Steam's documented initial online setup; if Steam requires login again, complete it normally. [Steam Offline Mode](https://help.steampowered.com/en/faqs/view/0E18-319B-E34B-B2C8).
 
-## Candidate layout
+## Image layout
 
 The image targets Linux **amd64** Docker Standalone, with Windows x64 .NET self-contained binaries and Wine development release 11.19. Ubuntu's base image digest and Wine package version are pinned in the Dockerfile. Wine 11.0 crashed in device-notification cleanup after Steam's session disconnect; 11.19 handled the same disconnect with a clean exit, but does not resolve the account conflict. The official Steam installer is downloaded into the private profile and checked against a pinned SHA-256; Steam subsequently updates itself normally. A changed installer checksum stops setup until the new official installer is reviewed.
 
@@ -29,14 +29,22 @@ The application runs as UID/GID **1654**, with a read-only root filesystem, drop
 
 Docker Desktop on Windows is only a local proof environment. Its Windows bind mounts caused Wine to fail when mapping Windows executable/assembly images. The proof used unchanged files copied into a private native Docker volume; this is not evidence that the game files or .NET needed modification. The deployment target is a Linux host with native filesystem mounts.
 
-## Build inputs and stack
+## Published image and optional source build
 
-There is deliberately no automatic fallback to the broken alpha.5 image or ZIP. [compose.portainer.yml](../compose.portainer.yml) requires `COI_IMAGE` to name a reviewed candidate image. [compose.portainer.build.yml](../compose.portainer.build.yml) additionally requires:
+The image was published by the successful [container Actions run](https://github.com/nebula-codes/coi-dedicated/actions/runs/38099804323), and an anonymous public pull was verified. Its published digest is `sha256:e406c61b3ef34d31cda0ef7e5c4f3a3b64c42bc9e37ccf42c170a1d626dc2a6a`.
+
+[compose.portainer.yml](../compose.portainer.yml) still requires explicit `COI_IMAGE` selection. Use the published tag above, or pin the exact image in Portainer's stack environment:
+
+```text
+COI_IMAGE=ghcr.io/nebula-codes/coi-dedicated@sha256:e406c61b3ef34d31cda0ef7e5c4f3a3b64c42bc9e37ccf42c170a1d626dc2a6a
+```
+
+There is deliberately no automatic fallback to the broken alpha.5 image or ZIP. For an optional source build, [compose.portainer.build.yml](../compose.portainer.build.yml) additionally requires:
 
 - `COI_BUILD_CONTEXT`: a reviewed source checkout or Git URL containing this Dockerfile.
 - `COI_SERVER_VERSION`, `COI_SERVER_ARCHIVE_URL`, `COI_SERVER_ARCHIVE_SHA256`: a corrected Windows manager archive and its checksum.
 
-That archive must contain `bin/server`, `bin/control`, and `bin/steam-check`. Older manager archives without the new helper are rejected. The build extracts only these redistributable applications, and checks that game assemblies, keys, and saves are absent. It never sends `/game` or the persistent profile to the build context. The corrected [alpha.6 Windows release](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.6) supplies these inputs; this does not make the Wine container a validated hosting release.
+That archive must contain `bin/server`, `bin/control`, and `bin/steam-check`. Older manager archives without the new helper are rejected. The build extracts only these redistributable applications, and checks that game assemblies, keys, and saves are absent. It never sends `/game` or the persistent profile to the build context. The corrected [alpha.6 Windows release](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.6) supplies these inputs. Publication and local tests do not establish compatibility with the target NAS or every Steam setup.
 
 The published Windows manager archive has SHA-256 `9b8fb250fdfe27008e76a6045a477220a4ba1f02a9962e78f2ae649cb786f1d1`. Use its release download URL and `COI_SERVER_VERSION=0.1.0-alpha.6` for a candidate build. Do not use the older Linux archive.
 
@@ -100,6 +108,7 @@ Give players only their matching Windows multiplayer client, the Linux host's LA
 
 ## Evidence so far
 
+- The experimental alpha.6 image is published at the tag and digest above; its Actions build succeeded and anonymous public pull was verified.
 - Official Windows Steam installer downloaded and its Valve Authenticode signature and SHA-256 verified.
 - Isolated Ubuntu/Wine 11 image built locally; no live server or installed client changed.
 - Windows self-contained .NET 10 host runs after avoiding Docker Desktop's Windows executable bind-mount mapping problem.
