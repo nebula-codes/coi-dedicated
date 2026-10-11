@@ -88,6 +88,10 @@ The Dockerfile verifies the archive checksum, extracts only redistributable serv
 
 The Linux package can be produced with `scripts/package-linux-server.ps1 -GameDir <installation>`. It contains this project's applications only; the game installation remains a separate read-only runtime mount. No game binaries are published in the package or image.
 
+## Alpha.6.3 publication
+
+The [alpha.6.3 packages and image are published](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.6.3). [Container run 38173332287](https://github.com/nebula-codes/coi-dedicated/actions/runs/38173332287) passed from source `80909f2d7508eb0c5f7cd4071f7a97ca4d05b592`. Anonymous registry checks verified `:0.1.0-alpha.6.3` and the then-current `:alpha` at `sha256:1b3a57b6cc7c819fbbd63376d4055275f5ba8ecd97814dc9197d4cbcc57587a6`, for Linux amd64. The Linux archive checksum is `42db7537d761d4c46e46a376fbb784502af284526673341cf6fa9540cfadbea6`. Re-pull the image when updating the stack, preserve the existing data volume, and update every player to the matching alpha.6.3 client. Publication does not update an existing NAS deployment automatically.
+
 ## Validation scope
 
 Alpha.6.3 passed all 13 protocol checks. A test using the packaged host and two actual TCP peers held one player's readiness for 85 seconds without keepalives from the established player; both peers remained connected, the join barrier released, and both acknowledged the resumed authoritative tick. Separate boundary checks kept a loading peer at an elapsed age of 599 seconds and expired it at 601 seconds. The packaged timing values were verified as 600 seconds for joining, 610 for the client download, and 615 for peer inactivity. These boundary checks used controlled peer ages; they do not establish that a Unity client loaded successfully over a full ten-minute wait.
