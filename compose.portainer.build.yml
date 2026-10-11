@@ -1,4 +1,4 @@
-# Native Linux hosting, alpha.6.1 candidate. Choose the image explicitly.
+# Native Linux server and browser manager, alpha.6.2. Choose the image explicitly.
 # Preserve the existing data volume; no Steam profile or desktop is needed.
 services:
   coi-server:
@@ -21,10 +21,15 @@ services:
       - no-new-privileges:true
     ports:
       - "${COI_BIND_IP:-0.0.0.0}:${COI_GAME_PORT:-28551}:28551/tcp"
+      - "${COI_MANAGER_BIND_IP:-0.0.0.0}:${COI_MANAGER_PORT:-28560}:28560/tcp"
     environment:
       # Reject an old auth-only deployment before it can load an island.
       # Remove COI_AUTH_ONLY from the stack environment during migration.
       COI_AUTH_ONLY: "${COI_AUTH_ONLY:-false}"
+      COI_MANAGER_ENABLED: "true"
+      COI_MANAGER_AUTOSTART: "${COI_MANAGER_AUTOSTART:-true}"
+      COI_PUBLIC_GAME_PORT: "${COI_GAME_PORT:-28551}"
+      COI_MANAGER_HOST: "${COI_MANAGER_HOST:-}"
       COI_MAP: "${COI_MAP:-New Haven}"
       COI_STARTING_FACTORY: "${COI_STARTING_FACTORY:-true}"
       COI_AUTOSAVE_SECONDS: "${COI_AUTOSAVE_SECONDS:-60}"

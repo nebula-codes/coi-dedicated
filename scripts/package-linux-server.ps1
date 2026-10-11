@@ -1,7 +1,7 @@
 #Requires -Version 7.0
 [CmdletBinding()]
 param(
-    [ValidatePattern('^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$')][string]$Version = '0.1.0-alpha.6.1',
+    [ValidatePattern('^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$')][string]$Version = '0.1.0-alpha.6.2',
     [string]$GameDir = $env:COI_GAME_DIR,
     [string]$OutputDirectory
 )
@@ -24,7 +24,8 @@ $package = Join-Path $work $packageName
 
 foreach ($project in @(
     @{ Name = 'CoiDedicated'; Output = 'server' },
-    @{ Name = 'CoiDedicated.Control'; Output = 'control' }
+    @{ Name = 'CoiDedicated.Control'; Output = 'control' },
+    @{ Name = 'CoiDedicated.Manager'; Output = 'manager' }
 )) {
     $arguments = @(
         'publish', (Join-Path $repository "src/$($project.Name)/$($project.Name).csproj"),
@@ -52,6 +53,35 @@ foreach ($subdirectory in @('server', 'control')) {
         }
     }
 }
+# Keep the browser bundle explicit too; public packages must never collect local
+# configuration, credentials, imported islands, or unrelated workspace files.
+$managerOutput = Join-Path $package 'manager'
+$managerNames = @('CoiDedicated.Manager.dll', 'CoiDedicated.Manager.deps.json', 'CoiDedicated.Manager.runtimeconfig.json',
+    'CoiDedicated.Manager.staticwebassets.endpoints.json', 'CoiDedicated.Manager.Core.dll', 'CoiDedicated.Protocol.dll', 'web.config')
+$webSource = Join-Path $repository 'src/CoiDedicated.Manager/wwwroot'
+foreach ($file in Get-ChildItem -LiteralPath $managerOutput -File -Recurse) {
+    $relative = [IO.Path]::GetRelativePath($managerOutput, $file.FullName).Replace('\', '/')
+    if ($file.DirectoryName -eq $managerOutput -and $file.Name -in $managerNames) { continue }
+    if ($relative.StartsWith('wwwroot/', [StringComparison]::Ordinal)) {
+        $webName = $relative.Substring(8)
+        $compressed = $file.Extension -in @('.br', '.gz')
+        if ($compressed) { $webName = $webName.Substring(0, $webName.Length - $file.Extension.Length) }
+        $source = Join-Path $webSource $webName
+        if (Test-Path -LiteralPath $source -PathType Leaf) {
+            $expected = (Get-FileHash -LiteralPath $source).Hash
+            if (!$compressed -and $expected -eq (Get-FileHash -LiteralPath $file.FullName).Hash) { continue }
+            if ($compressed) {
+                $inputStream = [IO.File]::OpenRead($file.FullName)
+                $decoded = if ($file.Extension -eq '.br') { [IO.Compression.BrotliStream]::new($inputStream, [IO.Compression.CompressionMode]::Decompress) }
+                    else { [IO.Compression.GZipStream]::new($inputStream, [IO.Compression.CompressionMode]::Decompress) }
+                try { $actual = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($decoded)) }
+                finally { $decoded.Dispose(); $inputStream.Dispose() }
+                if ($actual -eq $expected) { continue }
+            }
+        }
+    }
+    throw "Unexpected public manager package file: $($file.FullName)"
+}
 Copy-Item -LiteralPath (Join-Path $repository 'LICENSE'), (Join-Path $repository 'THIRD-PARTY-NOTICES.md') -Destination $package
 $readme = Get-Content -LiteralPath (Join-Path $repository 'docs/docker-portainer.md') -Raw
 $sourceRoot = "https://github.com/nebula-codes/coi-dedicated/blob/v$Version"
@@ -66,7 +96,9 @@ $readme | Set-Content -LiteralPath (Join-Path $package 'README.md') -Encoding ut
     version = $Version
     platform = 'linux-x64'
     frameworkDependent = $true
-    requiredRuntime = 'Microsoft.NETCore.App 10.0'
+    requiredRuntime = 'Microsoft.AspNetCore.App 10.0'
+    browserManagerIncluded = $true
+    managerAuthentication = 'private generated admin key and authenticated browser session'
     gameVersion = '0.8.7d'
     compatibility = 'dedicated-prototype-6 / cmd1'
     experimental = $true

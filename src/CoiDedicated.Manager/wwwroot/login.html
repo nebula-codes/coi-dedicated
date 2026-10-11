@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sign in · CoI Server Manager</title>
+  <link rel="stylesheet" href="/app.css">
+  <script src="/login.js" defer></script>
+</head>
+<body class="login-page">
+  <main class="login-card panel">
+    <span class="eyebrow">CAPTAIN OF INDUSTRY</span>
+    <h1>Your island, always on.</h1>
+    <p>Sign in to manage the server, saves, and player access.</p>
+    <form id="login-form">
+      <label class="form-field" for="admin-token">Manager access key
+        <input id="admin-token" name="token" type="password" required autocomplete="current-password" spellcheck="false" maxlength="64" placeholder="Paste your manager access key">
+      </label>
+      <p id="login-error" class="form-error" role="alert" hidden></p>
+      <button id="login-submit" class="button primary" type="submit">Sign in</button>
+    </form>
+    <details class="login-help"><summary>Where do I find the key?</summary><p>In Portainer, open this container’s Console and run:</p><pre>cat /data/.manager/admin.key</pre><p>Copy the complete key into the field above. It stays the same after a restart. Keep this administrator key private; players use the separate join key.</p></details>
+    <p class="login-network">Use this dashboard on your trusted LAN or through a private VPN.</p>
+  </main>
+</body>
+</html>

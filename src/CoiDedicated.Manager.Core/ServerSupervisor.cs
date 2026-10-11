@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 
@@ -14,6 +15,7 @@ public sealed class ServerSupervisor : IAsyncDisposable
     private readonly string _runtimeDirectory;
     private readonly string _metadataPath;
     private readonly ControlConnection _control;
+    private readonly bool _preferSignalShutdown;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly object _logGate = new();
     private readonly Queue<ServerLogEntry> _logs = new();
@@ -24,13 +26,14 @@ public sealed class ServerSupervisor : IAsyncDisposable
     private bool _initialized;
     private bool _stopRequested;
     private bool _shutdownSent;
+    private bool _nativeSignalReady;
     private long _logOffset;
     private long _sequence;
     private DateTimeOffset? _lastCpuAt;
     private TimeSpan _lastCpu;
     private ServerRuntimeSnapshot _snapshot;
 
-    public ServerSupervisor(ServerProfile profile, string hostDllPath, string runtimeDirectory, ControlConnection? control = null)
+    public ServerSupervisor(ServerProfile profile, string hostDllPath, string runtimeDirectory, ControlConnection? control = null, bool preferSignalShutdown = false)
     {
         Profile = profile;
         _hostDllPath = Path.GetFullPath(hostDllPath);
@@ -38,6 +41,7 @@ public sealed class ServerSupervisor : IAsyncDisposable
         _metadataPath = Path.Combine(_runtimeDirectory, "process.json");
         LogPath = Path.Combine(_runtimeDirectory, "server.log");
         _control = control ?? new ControlConnection(TimeSpan.FromSeconds(5));
+        _preferSignalShutdown = preferSignalShutdown && OperatingSystem.IsLinux();
         _snapshot = new ServerRuntimeSnapshot { Id = profile.Id };
     }
 
@@ -197,6 +201,7 @@ public sealed class ServerSupervisor : IAsyncDisposable
         _everReady = false;
         _stopRequested = false;
         _shutdownSent = false;
+        _nativeSignalReady = false;
         _lastCpuAt = null;
         // Only inspect output from this new process for readiness.
         _logOffset = File.Exists(LogPath) ? new FileInfo(LogPath).Length : 0;
@@ -249,9 +254,25 @@ public sealed class ServerSupervisor : IAsyncDisposable
         _snapshot = _snapshot with { State = ServerState.Stopping, LastError = null };
         PersistMetadata();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(60));
+        int timeoutSeconds = _preferSignalShutdown ? 240 : 60;
+        deadline.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
         try
         {
+            if (_preferSignalShutdown && !_shutdownSent)
+            {
+                // The native host installs SIGTERM before bootstrap and propagates it to
+                // bootstrap children. This also cancels generation before a control port exists.
+                // Its first log line proves the handler is registered; signaling immediately
+                // after Process.Start could otherwise terminate the runtime before Main runs.
+                while (!_nativeSignalReady)
+                {
+                    if (_process.HasExited) { RecordExit(); return; }
+                    await TailLogAsync(deadline.Token).ConfigureAwait(false);
+                    if (!_nativeSignalReady) await Task.Delay(50, deadline.Token).ConfigureAwait(false);
+                }
+                SignalNativeShutdown();
+                if (_process is null) return;
+            }
             while (!_shutdownSent)
             {
                 bool wasReadyWhenRequested = _everReady;
@@ -275,7 +296,7 @@ public sealed class ServerSupervisor : IAsyncDisposable
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            _snapshot = _snapshot with { State = ServerState.Stopping, LastError = "The server is still initializing, saving, or shutting down after 60 seconds. The stop remains pending; its process has not been force-stopped." };
+            _snapshot = _snapshot with { State = ServerState.Stopping, LastError = $"The server is still initializing, saving, or shutting down after {timeoutSeconds} seconds. The stop remains pending; its process has not been force-stopped." };
             AddLog("warning", _snapshot.LastError);
             throw new TimeoutException(_snapshot.LastError);
         }
@@ -288,6 +309,8 @@ public sealed class ServerSupervisor : IAsyncDisposable
         if (_process is null) return;
         if (_process.HasExited) { RecordExit(); return; }
         UpdateMetrics();
+        if (_preferSignalShutdown && _stopRequested && !_shutdownSent && _nativeSignalReady) SignalNativeShutdown();
+        if (_process is null) return;
         try
         {
             var response = await _control.ExecuteAsync(ControlHost, Profile.ControlPort, KeyPath, "status", cancellationToken).ConfigureAwait(false);
@@ -298,7 +321,7 @@ public sealed class ServerSupervisor : IAsyncDisposable
                 PersistMetadata();
                 AddLog("info", "Server is ready; authenticated control connection established.");
             }
-            if (_stopRequested && !_shutdownSent) await RequestShutdownAsync(cancellationToken).ConfigureAwait(false);
+            if (_stopRequested && !_shutdownSent && !_preferSignalShutdown) await RequestShutdownAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (IsControlFailure(ex))
         {
@@ -315,6 +338,7 @@ public sealed class ServerSupervisor : IAsyncDisposable
         var root = document.RootElement;
         if (!root.TryGetProperty("step", out var step) || !step.TryGetInt32(out int currentStep) || !root.TryGetProperty("paused", out var paused) || paused.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
             throw new IOException("Server returned an invalid status response.");
+        _nativeSignalReady = true;
         _snapshot = _snapshot with
         {
             State = _stopRequested ? ServerState.Stopping : paused.GetBoolean() ? ServerState.Paused : ServerState.Running,
@@ -364,6 +388,7 @@ public sealed class ServerSupervisor : IAsyncDisposable
                     if (value == '\n')
                     {
                         string line = _logRemainder.ToString().TrimEnd('\r'); _logRemainder.Clear();
+                        if (line.StartsWith("[host] Starting dedicated server at ", StringComparison.Ordinal)) _nativeSignalReady = true;
                         if (line.Contains("[server] Simulation continues with no players.", StringComparison.Ordinal)) _everReady = true;
                         if (line.Length != 0) AddLog(line.Contains("exception", StringComparison.OrdinalIgnoreCase) || line.Contains("error", StringComparison.OrdinalIgnoreCase) ? "error" : line.Contains("warning", StringComparison.OrdinalIgnoreCase) ? "warning" : "info", line);
                     }
@@ -393,7 +418,9 @@ public sealed class ServerSupervisor : IAsyncDisposable
         int? code = null;
         try { code = _process.ExitCode; }
         catch (InvalidOperationException) { }
-        bool expected = code == 0;
+        // A Unix process reattached by PID has no wait handle that can recover its exit
+        // status. A completed, acknowledged graceful stop remains a stopped server.
+        bool expected = code == 0 || code is null && _shutdownSent;
         _snapshot = _snapshot with
         {
             State = expected ? ServerState.Stopped : ServerState.Faulted,
@@ -448,6 +475,21 @@ public sealed class ServerSupervisor : IAsyncDisposable
     private static bool SamePath(string left, string right) => string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
     private static bool IsControlFailure(Exception exception) => exception is IOException or SocketException or TimeoutException or UnauthorizedAccessException or JsonException;
     private sealed record OwnedProcess(string ProfileId, int ProcessId, long StartTimeUtcTicks, string HostDllPath, string DataDirectory, bool WasReady, bool StopRequested, string? ExecutablePath = null);
+
+    [DllImport("libc", EntryPoint = "kill", SetLastError = true)]
+    private static extern int Kill(int processId, int signal);
+
+    private void SignalNativeShutdown()
+    {
+        EnsureLiveOwnedProcess();
+        if (Kill(_process!.Id, 15) != 0)
+        {
+            if (_process.HasExited) { RecordExit(); return; }
+            throw new System.ComponentModel.Win32Exception(Marshal.GetLastPInvokeError(), "Could not signal the owned server process.");
+        }
+        _shutdownSent = true;
+        AddLog("info", "Manager requested native graceful shutdown; waiting for the final save and child process exit.");
+    }
 
     /// <summary>Detaches the manager while leaving its server and durable ownership metadata intact.</summary>
     public async ValueTask DisposeAsync()

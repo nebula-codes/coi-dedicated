@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using CoiDedicated.Manager.Core;
 
@@ -34,7 +35,8 @@ public static class ServerSupervisorTests
 
             await supervisor.StopAsync();
             if (supervisor.Snapshot.State != ServerState.Stopped || supervisor.Snapshot.ProcessId is not null || !File.Exists(Path.Combine(profile.DataDirectory, "saved.txt")))
-                throw new Exception("Graceful stop did not wait for the fixture's final save and process exit.");
+                throw new Exception("Graceful stop did not wait for the fixture's final save and process exit: " + JsonSerializer.Serialize(supervisor.Snapshot)
+                    + "; saved=" + File.Exists(Path.Combine(profile.DataDirectory, "saved.txt")));
             Console.WriteLine("PASS graceful stop waits for the save and actual process exit");
             await supervisor.DisposeAsync(); supervisor = null;
 
@@ -101,6 +103,29 @@ public static class ServerSupervisorTests
                 throw new Exception("The bounded server log did not retain ordered recent entries.");
             await supervisor.StopAsync();
             Console.WriteLine("PASS server log history stays bounded and ordered");
+            await supervisor.DisposeAsync(); supervisor = null;
+
+            if (OperatingSystem.IsLinux())
+            {
+                foreach (string mode in new[] { "native-bootstrap", "native-running" })
+                {
+                    profile = Profile(Path.Combine(directory, mode), mode);
+                    supervisor = new ServerSupervisor(profile, host, Path.Combine(directory, mode + "-runtime"),
+                        new ControlConnection(TimeSpan.FromSeconds(1)), preferSignalShutdown: true);
+                    await supervisor.StartAsync();
+                    if (mode == "native-running") await UntilReadyAsync(supervisor);
+                    await supervisor.StopAsync();
+                    if (supervisor.Snapshot.State != ServerState.Stopped || supervisor.Snapshot.ExitCode != 0
+                        || !File.Exists(Path.Combine(profile.DataDirectory, "saved.txt")))
+                        throw new Exception("Native signal shutdown did not complete the child's final save.");
+                    await supervisor.StartAsync();
+                    await supervisor.StopAsync();
+                    if (supervisor.Snapshot.State != ServerState.Stopped || supervisor.Snapshot.ExitCode != 0)
+                        throw new Exception("Native signal state leaked into the next process lifecycle.");
+                    Console.WriteLine($"PASS {mode}: actual SIGTERM saves and exits before manager returns; restart resets signal state");
+                    await supervisor.DisposeAsync(); supervisor = null;
+                }
+            }
         }
         finally
         {
@@ -125,6 +150,8 @@ public static class ServerSupervisorTests
         string Value(string key) => args[Array.IndexOf(args, key) + 1];
         string data = Value("--data-dir"), log = Value("--log-file"), mode = Value("--map");
         Directory.CreateDirectory(data); Directory.CreateDirectory(Path.GetDirectoryName(log)!);
+        if (mode.StartsWith("native-", StringComparison.Ordinal))
+            return await RunNativeSignalFixture(data, log, mode, int.Parse(Value("--port")));
         await File.AppendAllTextAsync(log, "fixture bootstrap\n");
         if (mode == "slow-ready") await Task.Delay(500);
         if (mode == "log-burst") await File.AppendAllTextAsync(log, string.Concat(Enumerable.Range(1, 3000).Select(number => $"fixture log line {number}\n")));
@@ -154,6 +181,35 @@ public static class ServerSupervisorTests
             }
         }
         finally { listener.Stop(); }
+    }
+
+    private static async Task<int> RunNativeSignalFixture(string data, string log, string mode, int port)
+    {
+        using var stop = new CancellationTokenSource();
+        using var registration = PosixSignalRegistration.Create(PosixSignal.SIGTERM, context => { context.Cancel = true; stop.Cancel(); });
+        await File.AppendAllTextAsync(log, $"[host] Starting dedicated server at {DateTimeOffset.UtcNow:O}\n");
+        TcpListener? listener = null;
+        try
+        {
+            if (mode == "native-bootstrap") await Task.Delay(Timeout.InfiniteTimeSpan, stop.Token);
+            const string secret = "manager-native-fixture-secret-not-real";
+            await File.WriteAllTextAsync(Path.Combine(data, "control.key"), secret);
+            listener = new TcpListener(IPAddress.Loopback, port); listener.Start();
+            while (true)
+            {
+                using var client = await listener.AcceptTcpClientAsync(stop.Token);
+                await using var stream = client.GetStream();
+                await ControlConnectionTests.AuthenticateAsync(stream, secret);
+                await ControlConnectionTests.AckAsync(stream, 1, "{\"step\":42,\"paused\":false,\"players\":0}");
+            }
+        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested)
+        {
+            await Task.Delay(300);
+            await File.WriteAllTextAsync(Path.Combine(data, "saved.txt"), "native final save completed");
+            return 0;
+        }
+        finally { listener?.Stop(); }
     }
 
     private static ServerProfile Profile(string directory, string mode)

@@ -1,10 +1,10 @@
-# Native Linux Docker / Portainer hosting
+# Docker / Portainer server and browser manager
 
-The **alpha.6.1 native release** runs the dedicated simulation directly on Linux amd64 with .NET 10. It needs no Steam client, Wine, VNC, or sign-in profile. Local native-container startup, replay, and save/restart checks below have passed. Consult the matching release for published package and image availability; this guide does not establish deployment on your target machine. Do not substitute the old alpha.5 Linux image: that release lacked the startup compatibility handling and can trigger a delayed game-over.
+The **alpha.6.2 stack** includes the game server and its browser manager in one Linux amd64 container. The manager supervises the server directly and remains available when the island is stopped. It needs no Docker socket, Steam client, Wine, or VNC. The manager requires a private administrator key when accessed over the network. Consult the matching release for publication and validation status; this guide does not establish deployment on your target machine.
 
 The host accepts only the reviewed CoI **0.8.7d** `Mafi`, `Mafi.Core`, and `Mafi.Base` assembly fingerprints. Before each world load it applies a dedicated-process compatibility marker to the game's startup state; it does not initialize Steam or change game files. Unknown game builds stop before island loading rather than receiving an automatic patch. Players still use their normal installed game with the multiplayer client. Player join-key and administrative control-key authentication remain enabled. See the [startup evidence ledger](server-startup-validation.md).
 
-The [alpha.6.1 release](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.6.1) and its native Linux image are published. The [publication workflow](https://github.com/nebula-codes/coi-dedicated/actions/runs/38132914298) built from the checksum-verified public Linux archive and passed application, payload-privacy, entrypoint signal, and migration checks. Anonymous registry access was verified for `ghcr.io/nebula-codes/coi-dedicated:0.1.0-alpha.6.1`, digest `sha256:133dcd10e5ce2007f228cb12f3bc69aab1481da096f32c0a8871a98d13d0023c`, from source commit `2095af8d9aa287d5063d134a4b7fc932ab59ef57`.
+Alpha.6.1 remains the earlier server-only image. Use alpha.6.2 or newer for the browser manager. Do not substitute alpha.5: it lacks the corrected startup compatibility handling and can damage an island with a delayed game-over.
 
 ## Portainer stack
 
@@ -13,30 +13,43 @@ Use Docker Standalone on a Linux Intel/AMD 64-bit host. ARM and Docker Swarm are
 Copy [compose.portainer.yml](../compose.portainer.yml) into a Portainer stack. Set these stack environment variables:
 
 ```text
-COI_IMAGE=ghcr.io/nebula-codes/coi-dedicated:0.1.0-alpha.6.1
+COI_IMAGE=ghcr.io/nebula-codes/coi-dedicated:0.1.0-alpha.6.2
 COI_GAME_DIR=/srv/coi/game
 COI_DATA_VOLUME=coi-dedicated-native-test-data
 COI_GAME_PORT=28551
+COI_MANAGER_PORT=28560
 ```
 
-Use the matching published image from the alpha.6.1 release; a local candidate tag is not a remote download. `COI_IMAGE` remains mandatory so an old image cannot be selected silently. Start with a separate data volume and a copied island when validating a new host.
+Use the matching published image from the alpha.6.2 release. `COI_IMAGE` remains mandatory so an old image cannot be selected silently. For an existing stack, keep its exact `COI_DATA_VOLUME` and `COI_GAME_DIR` values; the example test volume above would create a separate island. Back up before changing the stack and do not run two hosts against the same writable volume.
 
-The server starts automatically: it resumes `/data/island.save` when present, otherwise creates `COI_MAP` (default `New Haven`) with the starting factory enabled. `COI_STARTING_FACTORY=false` disables that factory for a new world. `COI_AUTOSAVE_SECONDS` defaults to 60 and must be at least 10. Bootstrap creation and canonicalization finish before the gameplay endpoint opens. A successful `/app/control.sh --command status` or healthy container confirms that the service is ready; the initial launch message alone does not.
+On first manager startup, the server starts automatically: it resumes `/data/island.save` when present, otherwise creates `COI_MAP` (default `New Haven`) with the starting factory enabled. `COI_STARTING_FACTORY=false` disables that factory for a new world. `COI_AUTOSAVE_SECONDS` defaults to 60. Set `COI_MANAGER_AUTOSTART=false` to initially open the manager with the server stopped. Once initialized, dashboard settings and the requested running/stopped state persist across container restarts. Compose map/factory/autosave values seed the initial profile; change saved settings in the dashboard afterward.
+
+The dashboard becomes available before world creation completes. A healthy container means its **manager** is available, including when the island is intentionally stopped. Check the dashboard's game-server status or `/app/control.sh --command status` to confirm that the island has finished loading and can accept players.
+
+## Open the manager
+
+1. Open `http://YOUR-NAS-IP:28560/` (or your chosen `COI_MANAGER_PORT`).
+2. In Portainer, open the container console using `/bin/sh`, then run `cat /data/.manager/admin.key`.
+3. Copy that administrator key into the dashboard's sign-in form. Keep it private; it controls settings, saves, and downloads. Do not give it to players.
+
+The dashboard provides start, stop, restart, pause, resume, save, live status and player count, logs, backup/download/import/restore, editable island settings, and the player join-key download. One stack manages one island. Game paths and internal ports are fixed by Compose; the settings form keeps them read-only. A custom external `COI_GAME_PORT` is reflected in the player connection details. To use a DNS name instead of the NAS IP, set `COI_MANAGER_HOST` to that exact hostname (without a scheme or port).
+
+The administrator key, browser-session encryption keys, profile, requested running state, runtime metadata, and backups persist under `/data/.manager`. The active island and existing player/control keys stay directly under `/data`; migration does not move or replace them. Sign out when finished on a shared PC. Use the manager on your trusted LAN or private VPN; plain HTTP is not suitable for exposing it directly to the internet. `COI_MANAGER_BIND_IP` can restrict the published dashboard to a specific host interface.
 
 The image runs as UID/GID **1654**. The game directory must be readable by this user. A new named data volume receives the correct owner automatically; prepare bind-mounted data directories for that user. Keep the read-only root filesystem, dropped capabilities, `no-new-privileges`, and non-executable temporary mount from the supplied stack. Memory needs depend on island size; fresh terrain generation can use more memory than an already loaded save. Target-host resource limits still need measurement.
 
-## Existing Wine-stack migration
+## Update an existing stack
 
-1. Stop the old stack, retain an independent island backup, and record its exact `COI_DATA_VOLUME` value. Preserve the old Steam profile volume; this update does not delete or modify it.
+1. Stop the old stack, retain an independent island backup, and record its exact `COI_DATA_VOLUME` and `COI_GAME_DIR` values. If it used Wine, preserve the old Steam profile volume; this update does not delete or modify it.
 2. Replace the complete stack YAML, including its image, environment, ports, and volumes. Remove `COI_AUTH_ONLY` from the stack environment (or set it to `false`). A retained `true` value deliberately stops the new container before world loading with an actionable migration message.
 3. Remove obsolete `COI_STEAM_VOLUME`, `COI_STEAM_UI_PORT`, Wine settings, `/profile` mount, and desktop port mapping from the stack. The stored Docker profile volume may remain unused for rollback; do not publish it or send it to players.
-4. For testing, use a new data volume with a backed-up copy of `/data/island.save`, owned by UID 1654, before starting the server. For an approved cutover, reuse the original data volume and keys only after the test succeeds. Never run two hosts against the same writable data volume.
+4. Select the alpha.6.2 image and update the stack with **pull/re-pull image** enabled. The manager adopts the existing island and keys in place. The same UID 1654 is used by the previous native and Wine images.
 
 No Steam sign-in, Offline Mode, desktop password, or `steam-ui.sh validate` step exists in the native image. Old alpha.6 Wine-specific evidence remains historical; it does not establish that the new native image passed its own tests.
 
 ## Controls, player connections, and backups
 
-Only TCP **28551** is published for players. TCP 28550 remains an internal administrative endpoint. There is no web server-manager dashboard in this image. Keep the player port on a trusted LAN or VPN.
+TCP **28551** is published for players and TCP **28560** for the authenticated browser manager. TCP 28550 remains an internal administrative endpoint. Keep both published ports on a trusted LAN or VPN. The dashboard stays reachable when you click **Stop server**; stop the entire container in Portainer to stop the manager as well.
 
 Open the container console with `/bin/sh` as the default user and use:
 
@@ -48,15 +61,15 @@ Open the container console with `/bin/sh` as the default user and use:
 /app/control.sh --command shutdown
 ```
 
-The control wrapper reads `/data/control.key` without putting its contents in command-line arguments. In the same private console, retrieve the player key:
+The control wrapper reads `/data/control.key` without putting its contents in command-line arguments. The dashboard can download the player join key, or retrieve it in the private console:
 
 ```sh
 cat /data/join.key
 ```
 
-Save the complete output as `join.key` on the player's PC and share it privately with the host's LAN/VPN address and player port. Never share `control.key`. The key file appears after world initialization when the dedicated service starts. **Alpha.6 clients remain compatible with alpha.6.1 servers**: the wire protocol is still revision 6, and game assembly fingerprints must match. Alpha.5 clients cannot join. See the [player guide](player-guide.md), [coverage ledger](multiplayer-coverage.md), and [synchronization limits](synchronization.md).
+Save the complete output as `join.key` on the player's PC and share it privately with the host's LAN/VPN address and player port. Never share `control.key` or the manager's `admin.key`. The player key file appears after world initialization when the dedicated service starts. **Alpha.6 and alpha.6.1 clients remain compatible**: the wire protocol is still revision 6, and game assembly fingerprints must match. Alpha.5 clients cannot join. See the [player guide](player-guide.md), [coverage ledger](multiplayer-coverage.md), and [synchronization limits](synchronization.md).
 
-The native .NET host receives SIGTERM directly. During gameplay it finishes the final save and returns its actual exit status; during bootstrap it cancels the child and leaves the previous committed island intact. The stack allows up to 300 seconds before Docker can force termination. A successful control shutdown acknowledgement precedes the final save, so verify process exit and retain backups. `restart: unless-stopped` can restart a process exited through the control command; stop the container/stack when you want it to stay stopped.
+The manager receives Docker SIGTERM and gracefully stops its child before exiting. During gameplay the host finishes a final save; during bootstrap it cancels preparation and leaves the previous committed island intact. The stack allows up to 300 seconds before Docker can force termination. Use the dashboard for persistent start/stop choices. Direct control commands remain diagnostic tools and do not change the manager's saved requested state.
 
 Back up the data volume independently. It contains `island.save`, its previous generation, and both keys. Snapshot downloads are also available with `/app/control.sh --command snapshot --output /data/my-backup.save`. An old paused island resumes simulation when the service starts; startup does not preserve a paused session as an operational stop.
 
@@ -64,15 +77,25 @@ Back up the data volume independently. It contains `island.save`, its previous g
 
 [compose.portainer.build.yml](../compose.portainer.build.yml) takes a reviewed source checkout or Git URL in `COI_BUILD_CONTEXT` plus:
 
-- `COI_SERVER_VERSION`: matching Linux package version, for example `0.1.0-alpha.6.1`.
+- `COI_SERVER_VERSION`: matching Linux package version, for example `0.1.0-alpha.6.2`.
 - `COI_SERVER_ARCHIVE_URL`: `CoI-Dedicated-Server-<version>-linux-x64.zip` from the matching release.
 - `COI_SERVER_ARCHIVE_SHA256`: exact checksum from `SHA256SUMS-linux.txt`.
 
-The Dockerfile verifies the archive checksum, extracts only redistributable server/control applications and notices, and rejects game assemblies, keys, or saves in that payload. It pins the Microsoft .NET 10 runtime image by digest. The build context excludes installed games, local releases, Steam profiles, saves, and keys. The Windows manager ZIP and old alpha.6 Wine image are not inputs to this build.
+The Dockerfile verifies the archive checksum, extracts only redistributable server/control/manager applications and notices, and rejects game assemblies, keys, or saves in that payload. It pins the Microsoft ASP.NET 10 runtime image by digest. The build context excludes installed games, local releases, Steam profiles, saves, and keys. The Windows manager ZIP and old alpha.6 Wine image are not inputs to this build.
 
 The Linux package can be produced with `scripts/package-linux-server.ps1 -GameDir <installation>`. It contains this project's applications only; the game installation remains a separate read-only runtime mount. No game binaries are published in the package or image.
 
 ## Validation scope
+
+Alpha.6.2 passed 31 HTTP/authentication checks, 14 storage checks, Windows and Linux process-supervision tests, and five isolated Linux manager-lifecycle scenarios. The lifecycle scenarios cover automatic startup, saved start/stop intent across manager recreation, dashboard restart, cancellation before control readiness, and reporting a shutdown deadline failure instead of a clean exit.
+
+The alpha.6.2 container also passed five integration groups against a copied real island. Authentication protected state, actions, and private downloads. Pause, resume, save, logs, checksum-verified live backup/download, import, and stopped-island restore succeeded; replacement of a running island was blocked. Restoring preserved the prior island. Settings, authenticated browser sessions, and an intentional stopped state survived container restart. Dashboard restart and Docker shutdown/restart preserved the island and existing player/control keys; the measured gameplay shutdown took 1.21 seconds and exited 0. Logout revoked browser access, and the original source fixture remained unchanged. Browser sign-in and the dashboard were also checked visually.
+
+A separate alpha.6.2 test observed a real canonicalization child and sent Docker SIGTERM through the manager. The container exited 0 in 0.334 seconds with no remaining process. Both the previously committed island and original source fixture remained byte-for-byte identical. Actual NAS/Portainer deployment, human Unity gameplay against this release, and multi-hour sessions remain unverified.
+
+### Alpha.6.1 simulation evidence (historical)
+
+The following results were established for alpha.6.1 and remain distinct from the alpha.6.2 manager and lifecycle checks above. The gameplay protocol is unchanged.
 
 The native entrypoint shell regression passes path alias creation, unchanged player/control key paths, rejection of a stale authentication-only configuration, direct signal delivery, and preservation of host exit success/failure. Its host is synthetic; it does not claim to test actual game saves.
 

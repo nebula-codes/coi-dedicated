@@ -1,7 +1,7 @@
 'use strict';
 
 const $ = id => document.getElementById(id);
-const app = { data: null, selected: localStorage.getItem('coi.selected'), tab: 'overview', logs: [], cursor: 0, logStreamId: null, saves: null, busy: new Set(), statePolling: false, logPolling: false, savesPolling: false, settingsFor: null, confirm: null, logRevision: 0, renderedLogRevision: -1 };
+const app = { data: null, selected: localStorage.getItem('coi.selected'), tab: 'overview', logs: [], cursor: 0, logStreamId: null, saves: null, busy: new Set(), statePolling: false, logPolling: false, savesPolling: false, settingsFor: null, settingsSnapshot: null, settingsDirty: false, confirm: null, logRevision: 0, renderedLogRevision: -1 };
 const number = value => typeof value === 'number' ? value.toLocaleString() : '—';
 const text = (id, value) => { const node = $(id); if (node.textContent !== String(value)) node.textContent = value; };
 const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
@@ -11,6 +11,9 @@ const runtime = () => app.data?.servers.find(item => item.id === app.selected) |
 const editable = run => ['stopped', 'faulted'].includes(run.state) && !run.processId;
 const live = run => ['running', 'paused'].includes(run.state);
 const serverUrl = (suffix = '', id = app.selected) => `/api/servers/${encodeURIComponent(id)}${suffix}`;
+const containerMode = () => app.data?.environment.containerMode === true;
+const gamePort = item => containerMode() ? app.data.environment.publicGamePort : item.gamePort;
+const fixedContainerFields = new Set(['bindAddress', 'gamePort', 'controlPort', 'gameDirectory']);
 const iconServer = '<svg class="profile-icon" viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="2" width="14" height="6" rx="1.5"/><rect x="3" y="12" width="14" height="6" rx="1.5"/><path d="M6 5h.1M6 15h.1m4-10h4m-4 10h4"/></svg>';
 
 function bytes(value) { if (typeof value !== 'number') return '—'; if (value < 1024) return `${value} B`; const unit = value < 1048576 ? 'KB' : value < 1073741824 ? 'MB' : 'GB'; const divisor = unit === 'KB' ? 1024 : unit === 'MB' ? 1048576 : 1073741824; return `${(value / divisor).toLocaleString(undefined, { maximumFractionDigits: 1 })} ${unit}`; }
@@ -28,6 +31,7 @@ async function api(url, options = {}) {
     let body = options.body;
     if (body && !(body instanceof Blob)) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(body); }
     const response = await fetch(url, { ...options, body, headers, signal: controller.signal, cache: 'no-store', credentials: 'same-origin' });
+    if (response.status === 401) { location.replace('/login.html'); throw new Error('Your session has ended. Sign in again to continue.'); }
     const result = response.status === 204 ? null : await response.json().catch(() => null);
     if (!response.ok) throw new Error(result?.error || `Request failed (${response.status}).`);
     return result;
@@ -43,6 +47,9 @@ async function pollState() {
     $('loading-state').hidden = true; $('empty-state').hidden = app.data.profiles.length !== 0; $('server-view').hidden = app.data.profiles.length === 0;
     setNotice('connection-error', ''); text('manager-status', 'Manager connected'); $('manager-led').classList.remove('offline');
     text('host-name', app.data.environment.hostName || 'Local workspace'); text('version', `v${app.data.version}`);
+    $('create-profile').hidden = containerMode(); $('empty-create').hidden = containerMode();
+    $('logout').hidden = !app.data.environment.authenticationRequired;
+    text('manager-location', containerMode() ? 'Container manager' : app.data.environment.authenticationRequired ? 'LAN manager' : 'Local manager');
     renderProfiles(); if (profile()) renderServer();
   } catch (error) { $('loading-state').hidden = true; setNotice('connection-error', `Manager unavailable. ${error.message} Reconnecting automatically…`); text('manager-status', 'Connection interrupted'); $('manager-led').classList.add('offline'); }
   finally { app.statePolling = false; }
@@ -50,7 +57,7 @@ async function pollState() {
 
 function selectProfile(id, render = true) {
   if (id === app.selected && app.settingsFor === id) return;
-  app.selected = id; localStorage.setItem('coi.selected', id || ''); app.logs = []; app.cursor = 0; app.logStreamId = null; app.logRevision++; app.saves = null; app.settingsFor = null;
+  app.selected = id; localStorage.setItem('coi.selected', id || ''); app.logs = []; app.cursor = 0; app.logStreamId = null; app.logRevision++; app.saves = null; app.settingsFor = null; app.settingsSnapshot = null; app.settingsDirty = false;
   $('log-search').value = ''; $('console-output').innerHTML = '<div class="console-empty">Waiting for server output.</div>';
   if (render && profile()) { renderProfiles(); renderServer(); pollLogs(); pollSaves(); }
 }
@@ -63,7 +70,7 @@ function renderProfiles() {
 
 function renderServer() {
   const item = profile(), run = runtime(), world = run.world, pending = app.busy.has(item.id), active = live(run), stopped = editable(run);
-  text('breadcrumb-name', item.name); text('server-name', item.name); text('server-map', item.map); text('server-endpoint', `${item.bindAddress}:${item.gamePort}`); text('server-process', run.processId ? `PID ${run.processId}` : '');
+  text('breadcrumb-name', item.name); text('server-name', item.name); text('server-map', item.map); text('server-endpoint', `${containerMode() ? location.hostname : item.bindAddress}:${gamePort(item)}`); text('server-process', run.processId ? `PID ${run.processId}` : '');
   document.title = `${item.name} · CoI Server Manager`;
   text('server-status', titleCase(run.state)); $('server-status').className = `status-badge ${run.state}`;
   const start = $('start-stop'); start.dataset.action = stopped ? 'start' : 'stop';
@@ -85,9 +92,16 @@ function renderServer() {
   text('process-memory', bytes(run.memoryBytes)); text('process-cpu', typeof run.cpuPercent === 'number' ? `${run.cpuPercent.toFixed(1)}%` : '—');
   text('autosave-label', `Autosave every ${item.autosaveSeconds >= 60 && item.autosaveSeconds % 60 === 0 ? `${item.autosaveSeconds / 60} min` : `${item.autosaveSeconds} sec`}`);
   renderConnection(item, run); renderInventory(world); renderRecent();
-  if (app.settingsFor !== item.id) { $('settings-fields').innerHTML = fieldsHtml(item, 'settings'); app.settingsFor = item.id; }
-  $('settings-fields').querySelectorAll('input,select').forEach(input => input.disabled = !stopped || pending);
-  $('save-settings').disabled = !stopped || pending; text('settings-lock', stopped ? 'READY TO EDIT' : 'STOP SERVER TO EDIT'); text('settings-help', stopped ? 'Changes take effect on the next start. Existing saves retain their map.' : 'Stop the server before changing its configuration.');
+  const settingsSnapshot = JSON.stringify(item);
+  if (app.settingsFor !== item.id || (!app.settingsDirty && app.settingsSnapshot !== settingsSnapshot)) {
+    $('settings-fields').innerHTML = fieldsHtml(item, 'settings'); app.settingsFor = item.id; app.settingsSnapshot = settingsSnapshot; app.settingsDirty = false;
+  }
+  $('settings-fields').querySelectorAll('input,select').forEach(input => {
+    const fixed = containerMode() && fixedContainerFields.has(input.name);
+    input.disabled = !stopped || pending || fixed;
+    if (fixed) { input.value = String(item[input.name]); const help = input.parentElement.querySelector('small'); if (help) help.textContent = 'Managed by this Compose stack.'; }
+  });
+  $('save-settings').disabled = !stopped || pending; text('settings-lock', stopped ? 'READY TO EDIT' : 'STOP SERVER TO EDIT'); text('settings-help', app.settingsDirty && app.settingsSnapshot !== settingsSnapshot ? 'Settings changed elsewhere. Your unsaved edits are preserved. Reload this page to discard them and use the latest settings.' : stopped ? 'Changes take effect on the next start. Existing saves retain their map.' : 'Stop the server before changing its configuration.');
   $('import-save').disabled = !stopped || pending; $('create-backup').disabled = pending || !app.saves?.current?.exists;
   $('download-logs').href = serverUrl('/logs/download');
   if (app.tab === 'backups') renderSaves();
@@ -95,11 +109,11 @@ function renderServer() {
 
 function renderConnection(item, run) {
   const local = ['127.0.0.1', '::1', 'localhost'].includes(item.bindAddress), all = ['0.0.0.0', '::'].includes(item.bindAddress);
-  const addresses = local ? [item.bindAddress] : all ? [...new Set([...(app.data.environment.addresses || []).filter(value => !['127.0.0.1', '::1'].includes(value)), '127.0.0.1'])] : [item.bindAddress];
+  const addresses = containerMode() ? [location.hostname] : local ? [item.bindAddress] : all ? [...new Set([...(app.data.environment.addresses || []).filter(value => !['127.0.0.1', '::1'].includes(value)), '127.0.0.1'])] : [item.bindAddress];
   const html = addresses.map(address => `<option value="${escapeHtml(address)}">${escapeHtml(address)}</option>`).join('');
   if ($('connection-address').innerHTML !== html) { const previous = $('connection-address').value; $('connection-address').innerHTML = html; if (addresses.includes(previous)) $('connection-address').value = previous; }
-  text('connection-mode', local ? 'LOCAL' : 'LAN / ONLINE'); text('connection-port', item.gamePort);
-  text('network-note', local ? 'Only this PC can connect. Choose LAN access in Settings to invite other computers.' : 'Invite trusted players over your LAN or a private VPN. Share only the game port; keep the manager local.');
+  text('connection-mode', local ? 'LOCAL' : 'LAN / ONLINE'); text('connection-port', gamePort(item));
+  text('network-note', containerMode() ? 'Invite trusted players over your LAN or a private VPN using this host and its published game port. Keep the manager access key private.' : local ? 'Only this PC can connect. Choose LAN access in Settings to invite other computers.' : 'Invite trusted players over your LAN or a private VPN. Share only the game port; keep the manager on your trusted network.');
   const key = $('download-key'); key.href = serverUrl('/join-key'); key.classList.toggle('disabled-link', !run.processId && !app.saves?.current?.exists); key.setAttribute('aria-disabled', key.classList.contains('disabled-link') ? 'true' : 'false');
 }
 
@@ -161,7 +175,7 @@ function fieldsHtml(item, prefix) {
   return `<section class="settings-section"><h3>Island identity</h3><div class="form-grid"><label class="form-field full" for="${prefix}-name">Server name<input id="${prefix}-name" name="name" value="${escapeHtml(item.name)}" maxlength="64" required autocomplete="off"></label><label class="form-field" for="${prefix}-map">Starting map<select id="${prefix}-map" name="map" required>${maps.map(map => `<option ${map === item.map ? 'selected' : ''}>${escapeHtml(map)}</option>`).join('')}</select><small>Used only when creating a new island.</small></label><label class="form-field" for="${prefix}-autosave">Autosave interval (seconds)<input id="${prefix}-autosave" name="autosaveSeconds" type="number" min="10" max="3600" value="${item.autosaveSeconds}" required><small>A fresh save is also written on shutdown.</small></label><label class="checkbox-field"><input name="startingFactory" type="checkbox" ${item.startingFactory ? 'checked' : ''}> Build the starting factory on a new island</label></div></section><section class="settings-section"><h3>Network</h3><div class="form-grid"><label class="form-field full" for="${prefix}-bind">Player access<select id="${prefix}-bind" name="bindAddress">${bindOptions.map(([value, label]) => `<option value="${escapeHtml(value)}" ${value === item.bindAddress ? 'selected' : ''}>${escapeHtml(label)}</option>`).join('')}</select><small>The manager stays local. Share or forward only the game port for players.</small></label><label class="form-field" for="${prefix}-gameport">Game port<input id="${prefix}-gameport" name="gamePort" type="number" min="1" max="65535" value="${item.gamePort}" required></label><label class="form-field" for="${prefix}-controlport">Administration port<input id="${prefix}-controlport" name="controlPort" type="number" min="1" max="65535" value="${item.controlPort}" required><small>Choose a different port for each server.</small></label></div></section><section class="settings-section"><h3>Local files</h3><div class="form-grid"><label class="form-field full" for="${prefix}-gamedir">Captain of Industry installation<input id="${prefix}-gamedir" name="gameDirectory" value="${escapeHtml(item.gameDirectory)}" required spellcheck="false"><small>The installed game supplies the simulation assemblies and maps.</small></label>${item.dataDirectory ? `<div class="form-field full">Server data directory<div class="path-value">${escapeHtml(item.dataDirectory)}</div><small>World saves and keys are isolated from your single-player saves.</small></div>` : ''}</div></section>`;
 }
 
-function readForm(form) { const data = new FormData(form); return { name: data.get('name').trim(), map: data.get('map'), gameDirectory: data.get('gameDirectory').trim(), bindAddress: data.get('bindAddress'), controlPort: Number(data.get('controlPort')), gamePort: Number(data.get('gamePort')), autosaveSeconds: Number(data.get('autosaveSeconds')), startingFactory: data.get('startingFactory') === 'on' }; }
+function readForm(form) { const data = new FormData(form); const fixed = containerMode() ? profile() : null; return { name: data.get('name').trim(), map: data.get('map'), gameDirectory: fixed?.gameDirectory ?? data.get('gameDirectory').trim(), bindAddress: fixed?.bindAddress ?? data.get('bindAddress'), controlPort: fixed?.controlPort ?? Number(data.get('controlPort')), gamePort: fixed?.gamePort ?? Number(data.get('gamePort')), autosaveSeconds: Number(data.get('autosaveSeconds')), startingFactory: data.get('startingFactory') === 'on' }; }
 function openCreate() { if (!app.data) return toast('Wait for the manager to connect.', true); const used = new Set(app.data.profiles.flatMap(item => [item.controlPort, item.gamePort])); let control = 28550; while (used.has(control) || used.has(control + 1)) control += 2; const maps = app.data.environment.maps || []; const map = maps.find(name => name.replace(/\.map$/i, '') === 'New Haven') || maps[0] || 'New Haven'; $('create-fields').innerHTML = fieldsHtml({ name: app.data.profiles.length ? `Island ${app.data.profiles.length + 1}` : 'My island', gameDirectory: app.data.environment.gameDirectory || '', map, bindAddress: '127.0.0.1', controlPort: control, gamePort: control + 1, autosaveSeconds: 60, startingFactory: true }, 'create'); setNotice('create-error', ''); $('profile-dialog').showModal(); $('create-name').focus(); }
 
 async function performAction(action, id = app.selected) {
@@ -176,6 +190,7 @@ function confirmAction(title, description, button, handler, name = false) { text
 async function downloadFile(url, fallbackName) {
   try {
     const response = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+    if (response.status === 401) { location.replace('/login.html'); throw new Error('Sign in again to download this file.'); }
     if (!response.ok) { const result = await response.json().catch(() => null); throw new Error(result?.error || `Download failed (${response.status}).`); }
     const blob = await response.blob(), objectUrl = URL.createObjectURL(blob);
     const link = document.createElement('a'); link.href = objectUrl; link.download = fallbackName; document.body.append(link); link.click(); link.remove();
@@ -198,8 +213,11 @@ document.addEventListener('click', event => {
 });
 
 $('create-profile').addEventListener('click', openCreate); $('empty-create').addEventListener('click', openCreate);
+$('logout').addEventListener('click', async () => { try { await api('/api/auth/logout', { method: 'POST', body: {} }); location.replace('/login.html'); } catch (error) { toast(error.message, true); } });
 $('create-form').addEventListener('submit', async event => { event.preventDefault(); const button = $('create-submit'); button.disabled = true; setNotice('create-error', ''); try { const data = await api('/api/servers', { method: 'POST', body: readForm(event.target) }); $('profile-dialog').close(); await pollState(); const id = data?.id || data?.profile?.id || app.data.profiles.at(-1)?.id; selectProfile(id); toast('Server profile created. Start it to bring your island online.'); } catch (error) { setNotice('create-error', error.message); } finally { button.disabled = false; } });
-$('settings-form').addEventListener('submit', async event => { event.preventDefault(); const id = app.selected; if (!editable(runtime())) return toast('Stop the server before editing its settings.', true); const input = readForm(event.target); app.busy.add(id); renderServer(); try { await api(serverUrl('', id), { method: 'PUT', body: input }); app.settingsFor = null; await pollState(); toast('Server settings saved.'); } catch (error) { toast(error.message, true); } finally { app.busy.delete(id); renderServer(); } });
+$('settings-form').addEventListener('input', () => { app.settingsDirty = true; });
+$('settings-form').addEventListener('change', () => { app.settingsDirty = true; });
+$('settings-form').addEventListener('submit', async event => { event.preventDefault(); const id = app.selected; if (!editable(runtime())) return toast('Stop the server before editing its settings.', true); const input = readForm(event.target); app.busy.add(id); renderServer(); try { await api(serverUrl('', id), { method: 'PUT', body: input }); app.settingsFor = null; app.settingsSnapshot = null; app.settingsDirty = false; await pollState(); toast('Server settings saved.'); } catch (error) { toast(error.message, true); } finally { app.busy.delete(id); renderServer(); } });
 $('confirm-form').addEventListener('submit', async event => { event.preventDefault(); if (!app.confirm) return; $('confirm-submit').disabled = true; setNotice('confirm-error', ''); try { await app.confirm(); } catch (error) { setNotice('confirm-error', error.message); } finally { $('confirm-submit').disabled = false; } });
 $('create-backup').addEventListener('click', () => { const id = app.selected; confirmAction('Create an island backup', 'The server will write a fresh snapshot if it is running. Backups are kept separately from automatic saves.', 'Create backup', async () => { await api(serverUrl('/backups', id), { method: 'POST', body: { name: $('backup-name').value.trim() || null } }); $('confirm-dialog').close(); toast('Island backup created.'); await pollSaves(); }, true); });
 $('import-save').addEventListener('click', () => $('save-file').click());

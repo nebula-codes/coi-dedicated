@@ -9,6 +9,10 @@ public sealed record ServerProfile(string Id, string Name, string GameDirectory,
     string Map, string BindAddress, int ControlPort, int GamePort, int AutosaveSeconds,
     bool StartingFactory, DateTimeOffset CreatedUtc);
 
+/// <summary>A container owns one island in its existing mounted data directory.</summary>
+public sealed record ContainerProfileConfiguration(string GameDirectory, string DataDirectory,
+    string Name = "New Haven", string Map = "New Haven", int AutosaveSeconds = 60, bool StartingFactory = true);
+
 public sealed record SaveBackup(string Id, string ProfileId, string Name, long Bytes, string Sha256, DateTimeOffset CreatedUtc);
 
 public enum ServerState { Stopped, Starting, Running, Paused, Stopping, Unresponsive, Faulted }

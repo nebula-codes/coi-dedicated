@@ -9,15 +9,21 @@ public sealed class ProfileStore
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { WriteIndented = true };
     private readonly object _gate = new();
     private readonly string _configurationPath;
+    private readonly ContainerProfileConfiguration? _container;
     private List<ServerProfile> _profiles = [];
     private bool _initialized;
 
     public string RootDirectory { get; }
 
-    public ProfileStore(string rootDirectory)
+    public ProfileStore(string rootDirectory, ContainerProfileConfiguration? container = null)
     {
         RootDirectory = Path.GetFullPath(rootDirectory);
         _configurationPath = Path.Combine(RootDirectory, "profiles.json");
+        if (container is not null)
+        {
+            if (!Path.IsPathFullyQualified(container.DataDirectory)) throw new ArgumentException("Container server data directory must be an absolute path.");
+            _container = container with { GameDirectory = NormalizeGameDirectory(container.GameDirectory, false), DataDirectory = Path.GetFullPath(container.DataDirectory) };
+        }
     }
 
     public void Initialize()
@@ -31,6 +37,7 @@ public sealed class ProfileStore
                 var stored = JsonSerializer.Deserialize<List<ServerProfile>>(File.ReadAllText(_configurationPath), JsonOptions)
                     ?? throw new InvalidDataException("Profile configuration is empty or invalid.");
                 if (stored.Count > 100) throw new InvalidDataException("Profile configuration contains too many servers.");
+                if (_container is not null && stored.Count != 1) throw new InvalidDataException("A container must contain exactly one managed server profile.");
                 foreach (var profile in stored)
                 {
                     ValidateId(profile.Id);
@@ -44,8 +51,9 @@ public sealed class ProfileStore
             {
                 // A portable installation must reach Settings even before the game path
                 // is configured. Starting a server still validates the installed files.
-                string gameDirectory = GetDefaultGameDirectory();
-                var input = Normalize(new("New Haven", gameDirectory, "New Haven", "127.0.0.1", 28550, 28551, 60, true), null, false);
+                string gameDirectory = _container?.GameDirectory ?? GetDefaultGameDirectory();
+                var input = Normalize(new(_container?.Name ?? "New Haven", gameDirectory, _container?.Map ?? "New Haven", "127.0.0.1", 28550, 28551,
+                    _container?.AutosaveSeconds ?? 60, _container?.StartingFactory ?? true), null, false);
                 var id = Guid.NewGuid().ToString("N");
                 _profiles.Add(FromInput(id, input, DateTimeOffset.UtcNow));
                 Persist(_profiles);
@@ -74,6 +82,7 @@ public sealed class ProfileStore
         lock (_gate)
         {
             EnsureInitialized();
+            if (_container is not null) throw new InvalidOperationException("This container manages one island. Deploy another stack for an additional server.");
             if (_profiles.Count >= 100) throw new ArgumentException("The manager supports up to 100 server profiles.");
             var normalized = Normalize(input, null, true);
             var profile = FromInput(Guid.NewGuid().ToString("N"), normalized, DateTimeOffset.UtcNow);
@@ -131,6 +140,8 @@ public sealed class ProfileStore
     private ProfileInput Normalize(ProfileInput input, string? currentId, bool requireGameFiles)
     {
         ArgumentNullException.ThrowIfNull(input);
+        if (_container is not null)
+            input = input with { GameDirectory = _container.GameDirectory, BindAddress = "0.0.0.0", ControlPort = 28550, GamePort = 28551 };
         string name = input.Name?.Trim() ?? "";
         if (name.Length is < 1 or > 64 || name.Any(char.IsControl)) throw new ArgumentException("Server name must contain 1–64 printable characters.");
         string game = NormalizeGameDirectory(input.GameDirectory, requireGameFiles);
@@ -166,7 +177,7 @@ public sealed class ProfileStore
     }
 
     private ServerProfile FromInput(string id, ProfileInput input, DateTimeOffset created) => new(id, input.Name,
-        input.GameDirectory, Path.Combine(RootDirectory, "servers", id), input.Map, input.BindAddress,
+        input.GameDirectory, _container?.DataDirectory ?? Path.Combine(RootDirectory, "servers", id), input.Map, input.BindAddress,
         input.ControlPort, input.GamePort, input.AutosaveSeconds, input.StartingFactory, created);
 
     private static ProfileInput ToInput(ServerProfile profile) => new(profile.Name, profile.GameDirectory, profile.Map,

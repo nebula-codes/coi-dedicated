@@ -40,6 +40,8 @@ HOST
 chmod +x "$fixture/bin/dotnet"
 export FIXTURE="$fixture" PATH="$fixture/bin:$PATH"
 export COI_AUTH_ONLY=false COI_MAP='New Haven' COI_STARTING_FACTORY=true COI_AUTOSAVE_SECONDS=60
+for mode in false true; do
+export COI_MANAGER_ENABLED=$mode
 for expected in 0 7; do
     set +e
     FIXTURE_EXIT=$expected sh "$fixture/entrypoint.sh" >"$fixture/exit-$expected.log" 2>&1
@@ -47,9 +49,17 @@ for expected in 0 7; do
     set -e
     test "$actual" = "$expected"
 done
+if test "$mode" = false; then
 grep -qx -- '--join-secret-file' "$fixture/host.args"
 grep -qx -- "$fixture/data/join.key" "$fixture/host.args"
 grep -qx -- "$fixture/data/control.key" "$fixture/host.args"
+else
+grep -qx -- '/app/manager/CoiDedicated.Manager.dll' "$fixture/host.args"
+grep -qx -- '--container' "$fixture/host.args"
+grep -qx -- '--server-data-dir' "$fixture/host.args"
+grep -qx -- "$fixture/data/.manager" "$fixture/host.args"
+grep -qx -- '28560' "$fixture/host.args"
+fi
 # An obsolete auth-only stack must fail before the fake host is even invoked.
 rm -f "$fixture/host.pid"
 set +e
@@ -79,4 +89,5 @@ for expected in 0 7; do
     test "$actual" = "$expected"
     test -s "$fixture/signal-observed"
 done
-printf 'PASS: actual entrypoint aliases and key paths; obsolete setup guard; direct SIGTERM delivery; host success/failure exit status preserved. Synthetic host only.\n'
+done
+printf 'PASS: actual manager/headless entrypoint paths; obsolete setup guard; direct SIGTERM delivery; success/failure exit status preserved. Synthetic applications only.\n'

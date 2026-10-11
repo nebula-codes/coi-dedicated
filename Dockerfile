@@ -14,12 +14,14 @@ RUN test "${TARGETARCH}" = amd64 && test -n "${SERVER_VERSION}" \
     && cp -a "/unpacked/CoI-Dedicated-Server-${SERVER_VERSION}-linux-x64/." /payload/ \
     && test -f /payload/server/CoiDedicated.dll \
     && test -f /payload/control/CoiDedicated.Control.dll \
+    && test -f /payload/manager/CoiDedicated.Manager.dll \
+    && test -f /payload/manager/wwwroot/index.html \
     && test -z "$(find /payload -iname 'Mafi*.dll' -o -iname 'UnityEngine*.dll' -o -name '*.key' -o -name '*.save')"
 
-FROM mcr.microsoft.com/dotnet/runtime:10.0-noble@sha256:b89586dc17781f25531909993658aa8161205ae38b8cec8847df4a8221a403d5
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble@sha256:222759b391a1aaf241166672c8f99b2d4ada452e7b5319f3c6e8f265a37b5ad4
 ARG SERVER_VERSION
 LABEL org.opencontainers.image.title="CoI Dedicated Server" \
-      org.opencontainers.image.description="Experimental native Linux simulation host; supply your own matching game installation." \
+      org.opencontainers.image.description="Native Linux game server and authenticated browser manager; supply your own matching game installation." \
       org.opencontainers.image.source="https://github.com/nebula-codes/coi-dedicated" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.version="${SERVER_VERSION}"
@@ -29,10 +31,11 @@ COPY --chmod=0755 docker/entrypoint.sh docker/control.sh docker/healthcheck.sh /
 # New named volumes inherit this owner. Prepare bind mounts for UID/GID 1654.
 RUN mkdir /data /game && chown app:app /data && chmod 0700 /data
 ENV COI_MAP="New Haven" COI_STARTING_FACTORY="true" COI_AUTOSAVE_SECONDS="60" \
+    COI_MANAGER_ENABLED="true" COI_MANAGER_AUTOSTART="true" \
     HOME="/data" XDG_CONFIG_HOME="/data/.config" XDG_DATA_HOME="/data/.local/share" \
     DOTNET_EnableDiagnostics="0"
 USER app
-EXPOSE 28551/tcp
+EXPOSE 28551/tcp 28560/tcp
 STOPSIGNAL SIGTERM
 HEALTHCHECK --interval=30s --timeout=35s --start-period=5m --retries=3 CMD ["/app/healthcheck.sh"]
 ENTRYPOINT ["/app/entrypoint.sh"]

@@ -27,7 +27,7 @@ For release changes and tested behavior, see the [alpha.6.1 release notes](docs/
 
 ## Docker and Portainer
 
-The alpha.6.1 Docker configuration runs the server directly on Linux amd64 with .NET 10. It mounts your supported game installation read-only and keeps saves and keys in persistent storage. It does not need Wine, a Steam profile, or a browser sign-in page. See the [Docker / Portainer guide](docs/docker-portainer.md) for stack configuration and the exact image's validation status. Older alpha.6 Wine deployment settings are not interchangeable with this stack; preserve the existing data before migrating. **The published alpha.5 Docker image must not be used.**
+The alpha.6.2 Docker stack includes the game server **and its browser manager** on Linux amd64. Open `http://YOUR-NAS-IP:28560/` and sign in with the private key at `/data/.manager/admin.key`. The dashboard provides server controls, logs, save backups/import/restore, settings, and player join-key downloads. It stays available while the island is stopped and remembers start/stop intent across container restarts. Existing `/data/island.save` and player/control keys are adopted in place. No Docker socket, Wine, or Steam sign-in is needed. Use the [Docker / Portainer guide](docs/docker-portainer.md) for deployment and migration; retain your existing game path and data-volume name. Existing alpha.6/alpha.6.1 Windows clients remain compatible. **The published alpha.5 Docker image must not be used.**
 
 ## Server manager from source
 

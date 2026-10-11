@@ -69,6 +69,13 @@ try {
     }
     $logs = Docker-Checked @('logs', $name)
     $logs | Set-Content -LiteralPath (Join-Path $work 'container.log')
+    # A managed host redirects its console to the manager's persistent log.
+    # Read that output too so a completed bootstrap cannot look interrupted.
+    $runtimeLogs = Join-Path $work 'runtime'
+    & docker cp "${name}:/data/.manager/runtime" $runtimeLogs 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        $logs = @($logs) + @(Get-ChildItem -LiteralPath $runtimeLogs -Filter server.log -File -Recurse | ForEach-Object { Get-Content -LiteralPath $_.FullName })
+    }
     if (($logs -join "`n") -match '\[bootstrap\] Canonical save ready') {
         throw 'Canonicalization completed before SIGTERM; this run did not test interruption.'
     }

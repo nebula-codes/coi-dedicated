@@ -26,6 +26,11 @@ autosave=${COI_AUTOSAVE_SECONDS:-60}
 case "$autosave" in ''|*[!0-9]*) fail 'COI_AUTOSAVE_SECONDS must be an integer from 10 to 999999999.' ;; esac
 test "${#autosave}" -le 9 && test "$autosave" -ge 10 || fail 'COI_AUTOSAVE_SECONDS must be from 10 to 999999999.'
 case "${COI_STARTING_FACTORY:-true}" in true|false|1|0) ;; *) fail 'COI_STARTING_FACTORY must be true or false.' ;; esac
+case "${COI_MANAGER_ENABLED:-true}" in true|false) ;; *) fail 'COI_MANAGER_ENABLED must be true or false.' ;; esac
+case "${COI_MANAGER_AUTOSTART:-true}" in true|false) ;; *) fail 'COI_MANAGER_AUTOSTART must be true or false.' ;; esac
+if test "${COI_MANAGER_ENABLED:-true}" = true && test "$autosave" -gt 3600; then
+    fail 'The browser manager requires COI_AUTOSAVE_SECONDS from 10 to 3600.'
+fi
 
 # Some shipped dependency paths contain literal Windows backslashes. Supply
 # read-only aliases without editing or copying installed game bytes. A unique
@@ -42,6 +47,19 @@ for managed in '/game/Captain of Industry_Data/Managed/'*.dll; do
     alias_path=$(printf '%s/Captain of Industry_Data\\Managed\\%s' "$game_view" "$(basename "$managed")")
     ln -s "$managed" "$alias_path"
 done
+if test "${COI_MANAGER_ENABLED:-true}" = true; then
+    set -- dotnet /app/manager/CoiDedicated.Manager.dll --container --repository /app \
+        --host-dll /app/server/CoiDedicated.dll --listen 0.0.0.0 --port 28560 \
+        --game-dir "$game_view" --server-data-dir /data --data-dir /data/.manager \
+        --map "$map" --autosave-seconds "$autosave" --public-game-port "${COI_PUBLIC_GAME_PORT:-28551}"
+    if test -n "${COI_MANAGER_HOST:-}"; then set -- "$@" --allowed-host "$COI_MANAGER_HOST"; fi
+    case "${COI_STARTING_FACTORY:-true}" in true|1) set -- "$@" --starting-factory ;; *) set -- "$@" --no-starting-factory ;; esac
+    if test "${COI_MANAGER_AUTOSTART:-true}" = false; then set -- "$@" --no-autostart; fi
+    printf 'CoI dedicated: browser manager on TCP 28560; player TCP 28551.\n'
+    printf 'CoI dedicated: read /data/.manager/admin.key privately in the container console to sign in.\n'
+    # The manager owns the child lifecycle and saves it when Docker sends SIGTERM.
+    exec "$@"
+fi
 set -- dotnet /app/server/CoiDedicated.dll --game-dir "$game_view" --data-dir /data \
     --serve --listen 0.0.0.0 --port 28550 --game-port 28551 \
     --secret-file /data/control.key --join-secret-file /data/join.key \

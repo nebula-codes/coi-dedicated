@@ -20,6 +20,9 @@ var tests = new (string Name, Func<Task> Run)[]
     ("Invalid updates preserve committed configuration", Validation),
     ("Ports are exclusive across profiles", Ports),
     ("Configuration ignores a supplied data directory", DerivedPaths),
+    ("Container migration adopts the existing island and keys without copying or replacing them", ContainerMigration),
+    ("Container settings survive restart while deployment paths and ports remain fixed", ContainerSettings),
+    ("Container run intent preserves explicit stop and start across recreation", RequestedState),
     ("Non-seekable upload is archived with exact SHA and name", Import),
     ("Bad headers and truncated saves never become backups", BadSaves),
     ("Oversized snapshot rejected without publishing archive", Oversized),
@@ -102,6 +105,60 @@ Task DerivedPaths()
     var loaded = new ProfileStore(store.RootDirectory);
     Equal(profile.DataDirectory, loaded.List().Single().DataDirectory);
     return Task.CompletedTask;
+}
+
+async Task ContainerMigration()
+{
+    string data = Path.Combine(root, "existing-container-volume");
+    Directory.CreateDirectory(data);
+    byte[] original = Save(19);
+    await File.WriteAllBytesAsync(Path.Combine(data, "island.save"), original);
+    await File.WriteAllTextAsync(Path.Combine(data, "join.key"), "private-test-join-key");
+    await File.WriteAllTextAsync(Path.Combine(data, "control.key"), "private-test-control-key");
+    var store = new ProfileStore(Path.Combine(data, ".manager"), new(game, data));
+    var profile = store.List().Single();
+    Equal(data, profile.DataDirectory);
+    Equal("0.0.0.0", profile.BindAddress);
+    Equal(28550, profile.ControlPort);
+    Equal(28551, profile.GamePort);
+    var library = new SaveLibrary(store);
+    var backup = await library.BackupCurrentAsync(profile.Id, "Migrated island");
+    Equal(Convert.ToHexString(original), Convert.ToHexString(await File.ReadAllBytesAsync(Path.Combine(data, "island.save"))));
+    Equal("private-test-join-key", await File.ReadAllTextAsync(Path.Combine(data, "join.key")));
+    Equal("private-test-control-key", await File.ReadAllTextAsync(Path.Combine(data, "control.key")));
+    Equal(Path.Combine(data, ".manager", "backups", profile.Id, backup.Id + ".save"), library.GetBackupPath(profile.Id, backup.Id));
+    Equal(false, Directory.Exists(Path.Combine(data, ".manager", "servers")));
+    await Throws<InvalidOperationException>(() => Task.FromResult(store.Create(Input(profile))));
+}
+
+Task ContainerSettings()
+{
+    string data = Path.Combine(root, "container-settings");
+    var store = new ProfileStore(Path.Combine(data, ".manager"), new(game, data));
+    var profile = store.List().Single();
+    var changed = store.Update(profile.Id, Input(profile) with { Name = "Harbor", Map = "Sandbox", AutosaveSeconds = 120,
+        StartingFactory = false, GameDirectory = "untrusted-request-path", BindAddress = "127.0.0.1", ControlPort = 33333, GamePort = 33334 });
+    Equal(game, changed.GameDirectory);
+    Equal("0.0.0.0", changed.BindAddress);
+    Equal(28550, changed.ControlPort);
+    string nextMount = Path.Combine(root, "replacement-game-view");
+    var reloaded = new ProfileStore(store.RootDirectory, new(nextMount, data, "Environment default", "New Haven", 60, true)).List().Single();
+    Equal(changed with { GameDirectory = nextMount }, reloaded);
+    return Task.CompletedTask;
+}
+
+async Task RequestedState()
+{
+    string directory = Path.Combine(root, "run-intent");
+    string id = Guid.NewGuid().ToString("N");
+    var state = new RequestedRunStateStore(directory);
+    Equal(true, state.ShouldRun(id));
+    state.Set(id, false);
+    Equal(false, new RequestedRunStateStore(directory).ShouldRun(id));
+    state.Set(id, true);
+    Equal(true, new RequestedRunStateStore(directory, defaultRunning: false).ShouldRun(id));
+    await File.WriteAllTextAsync(Path.Combine(directory, "requested-run-state.json"), "corrupt");
+    await Throws<JsonException>(() => Task.FromResult(new RequestedRunStateStore(directory).ShouldRun(id)));
 }
 
 async Task Import()

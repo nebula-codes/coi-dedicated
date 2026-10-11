@@ -6,7 +6,7 @@ on:
       version:
         description: Published Linux release version, without the v prefix
         required: true
-        default: 0.1.0-alpha.6.1
+        default: 0.1.0-alpha.6.2
 
 permissions:
   contents: read
@@ -55,6 +55,9 @@ jobs:
             --security-opt no-new-privileges:true --entrypoint sh "$IMAGE:$VERSION" -euc '
             dotnet /app/server/CoiDedicated.dll --help
             dotnet /app/control/CoiDedicated.Control.dll --help
+            test -f /app/manager/CoiDedicated.Manager.dll
+            test -f /app/manager/wwwroot/index.html
+            dotnet --list-runtimes | grep Microsoft.AspNetCore.App
             test -z "$(find /app -iname "Mafi*.dll" -o -iname "UnityEngine*.dll" -o -name "*.key" -o -name "*.save")"
             test ! -e /app/steam-ui.sh
           '

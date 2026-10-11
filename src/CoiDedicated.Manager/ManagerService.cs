@@ -9,8 +9,10 @@ internal sealed class ManagerService(ManagerOptions options, ProfileStore profil
     private readonly ConcurrentDictionary<string, ServerSupervisor> supervisors = new();
     private readonly ConcurrentDictionary<string, SemaphoreSlim> gates = new();
     private readonly ControlConnection control = new();
+    private readonly RequestedRunStateStore requestedState = new(options.DataRoot, options.AutoStart);
 
-    public ServerSupervisor Get(string id) => supervisors.GetOrAdd(id, key => new ServerSupervisor(profiles.Get(key), options.HostDll, Path.Combine(options.DataRoot, "runtime", key)));
+    public ServerSupervisor Get(string id) => supervisors.GetOrAdd(id, key => new ServerSupervisor(profiles.Get(key), options.HostDll,
+        Path.Combine(options.DataRoot, "runtime", key), preferSignalShutdown: options.ContainerMode));
     public ServerRuntimeSnapshot[] Snapshots() => profiles.List().Select(profile => Get(profile.Id).Snapshot).ToArray();
 
     public async Task<T> Serialized<T>(string id, Func<ServerSupervisor, Task<T>> action)
@@ -25,9 +27,20 @@ internal sealed class ManagerService(ManagerOptions options, ProfileStore profil
     {
         switch (action)
         {
-            case "start": profiles.ValidateForStart(server.Profile); await server.StartAsync(); break;
-            case "stop": await server.StopAsync(); break;
-            case "restart": profiles.ValidateForStart(server.Profile); await server.RestartAsync(); break;
+            case "start":
+                profiles.ValidateForStart(server.Profile);
+                if (options.ContainerMode) requestedState.Set(id, true);
+                await server.StartAsync();
+                break;
+            case "stop":
+                if (options.ContainerMode) requestedState.Set(id, false);
+                await server.StopAsync();
+                break;
+            case "restart":
+                profiles.ValidateForStart(server.Profile);
+                if (options.ContainerMode) requestedState.Set(id, true);
+                await server.RestartAsync();
+                break;
             case "pause" or "resume" or "save": await server.ExecuteAsync(action); break;
             default: throw new ArgumentException("Unknown server action.");
         }
@@ -87,7 +100,25 @@ internal sealed class ManagerService(ManagerOptions options, ProfileStore profil
     {
         foreach (ServerProfile profile in profiles.List())
         {
-            try { await Get(profile.Id).InitializeAsync(stoppingToken); }
+            try
+            {
+                await Serialized(profile.Id, async server =>
+                {
+                    await server.InitializeAsync(stoppingToken);
+                    if (options.ContainerMode)
+                    {
+                        bool shouldRun = requestedState.ShouldRun(profile.Id);
+                        requestedState.Set(profile.Id, shouldRun);
+                        if (shouldRun && server.Snapshot.ProcessId is null)
+                        {
+                            profiles.ValidateForStart(profile);
+                            await server.StartAsync(stoppingToken);
+                        }
+                        else if (!shouldRun && server.Snapshot.ProcessId is not null) await server.StopAsync(stoppingToken);
+                    }
+                    return true;
+                });
+            }
             catch (Exception error) { logger.LogWarning(error, "Could not reconnect server {Id}", profile.Id); }
         }
         while (!stoppingToken.IsCancellationRequested)
@@ -105,6 +136,23 @@ internal sealed class ManagerService(ManagerOptions options, ProfileStore profil
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         await base.StopAsync(cancellationToken);
-        foreach (ServerSupervisor server in supervisors.Values) await server.DisposeAsync();
+        List<Exception>? shutdownErrors = null;
+        foreach (ServerSupervisor server in supervisors.Values)
+        {
+            // Container lifetime owns its child; desktop manager lifetime deliberately does not.
+            // Stopping the container preserves run intent so an island resumes on redeployment.
+            if (options.ContainerMode)
+            {
+                try { await server.StopAsync(cancellationToken); }
+                catch (Exception error)
+                {
+                    logger.LogError(error, "Could not finish graceful shutdown for server {Id}", server.Profile.Id);
+                    (shutdownErrors ??= []).Add(error);
+                }
+            }
+            await server.DisposeAsync();
+        }
+        if (shutdownErrors is not null)
+            throw new AggregateException("Manager shutdown could not confirm every server's final save and process exit.", shutdownErrors);
     }
 }
