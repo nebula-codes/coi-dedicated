@@ -1,6 +1,6 @@
 # Server startup validation
 
-Status recorded on **2026-10-10** for Captain of Industry **0.8.7d**. The published **alpha.5 server ZIP and Docker image are affected by a startup defect** and must not be used for hosting. The correction described below is in current source; this document does not announce a corrected release. The startup-only correction retained revision 5. The later alpha.6 command expansion uses revision 6 and requires matching updated clients.
+Status recorded on **2026-10-10** for Captain of Industry **0.8.7d**. The old **alpha.5 server ZIP and Docker image are affected by a startup defect** and must not be used for hosting. The corrected Windows host is included in **alpha.6**, together with the command expansion and revision 6; every client must update too. The earlier local startup-only correction retained revision 5. No corrected hosting-ready Docker image has been published.
 
 ## Incident and cause
 

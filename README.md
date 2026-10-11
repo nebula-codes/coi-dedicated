@@ -10,18 +10,20 @@ Current alpha.6 source supports 286 command classes, including all 87 classes mi
 
 ## Download the alpha
 
-**Server hosting paused for the published alpha.5 packages and Docker image.** Their startup omits the game's Steam validation and can trigger a delayed pirate game-over that damages the island. Do not start a new session with those server assets. Preserve existing saves and separate backups. The correction described here is in current source; the published alpha.5 server downloads do not contain it. See [startup validation and test status](docs/server-startup-validation.md).
+Download the matching Windows client and server manager from [alpha.6 releases](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.6). The server requires Steam running and signed into an account that owns Captain of Industry.
 
-The current alpha.6 source adds the missing 87 UI-observed command codecs and uses compatibility revision 6. Every client and server must update together. It includes the alpha.5.1 visual interpolation correction. Everyone needs their own matching copy of Captain of Industry. See [alpha.6 changes and validation limits](docs/releases/v0.1.0-alpha.6.md).
+**The old alpha.5 server packages and Docker image are withdrawn from hosting.** Their startup omits the game's Steam initialization and can trigger a delayed pirate game-over. Alpha.6 corrects that startup defect; it does not repair an already-damaged island. Preserve saves and separate backups. See [startup validation and test status](docs/server-startup-validation.md).
+
+Alpha.6 adds the missing 87 UI-observed command codecs and uses compatibility revision 6. Every client and server must update together. It includes the alpha.5.1 visual interpolation correction. Everyone needs their own matching copy of Captain of Industry. See [alpha.6 changes and validation limits](docs/releases/v0.1.0-alpha.6.md).
 
 | Package | Start here |
 | --- | --- |
-| `CoI-Multiplayer-Client-0.1.0-alpha.5.1-win-x64.zip` | Extract, close the game, run **Install Client.cmd**. Follow the [player guide](docs/player-guide.md). |
-| `CoI-Server-Manager-0.1.0-alpha.5-win-x64.zip` | **Affected by the startup defect; do not use for hosting.** Follow the [hosting guide](docs/hosting-guide.md) for current source requirements. |
+| `CoI-Multiplayer-Client-0.1.0-alpha.6-win-x64.zip` | Extract, close the game, run **Install Client.cmd**. Follow the [player guide](docs/player-guide.md). |
+| `CoI-Server-Manager-0.1.0-alpha.6-win-x64.zip` | Extract and run **Start Server Manager.cmd**, with Steam signed in. Follow the [hosting guide](docs/hosting-guide.md). |
 
 After startup validation is satisfied, sessions remain experimental. Specialized gameplay variants remain unsupported; checkpoints cover selected state, and long-session/full-state determinism is not proven. Back up islands you care about. Share the player `join.key` privately; never publish keys, your saves, or the game installation.
 
-For release changes and tested behavior, see the [alpha.5 release notes](docs/releases/v0.1.0-alpha.5.md). Source builds are described below. This project's source is MIT-licensed; bundled dependency notices are described in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+For release changes and tested behavior, see the [alpha.6 release notes](docs/releases/v0.1.0-alpha.6.md). Source builds are described below. This project's source is MIT-licensed; bundled dependency notices are described in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Docker and Portainer
 
