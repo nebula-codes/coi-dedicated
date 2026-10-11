@@ -1,8 +1,6 @@
-name: Publish authenticated Wine container (validation pending)
+name: Publish experimental Wine container
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       version:
@@ -20,13 +18,11 @@ concurrency:
 
 jobs:
   publish:
-    # Disabled until genuine Steam login and the Windows host pass the Wine end-to-end check.
-    if: false
+    # Publish manually after the matching host passes the documented runtime checks.
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
       IMAGE: ghcr.io/nebula-codes/coi-dedicated
-      RELEASE_TAG: ${{ github.event.release.tag_name }}
       REQUESTED_VERSION: ${{ inputs.version }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -34,8 +30,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="${RELEASE_TAG#v}"
-          if [ -z "$VERSION" ]; then VERSION="$REQUESTED_VERSION"; fi
+          VERSION="$REQUESTED_VERSION"
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$ ]]; then
             echo 'Invalid release version'; exit 1
           fi
@@ -55,9 +50,19 @@ jobs:
             --tag "$IMAGE:$VERSION" --tag "$IMAGE:alpha" .
       - name: Verify application starts without bundled game files
         run: |
-          docker run --rm --entrypoint bash "$IMAGE:$VERSION" -c 'wineboot -u >/dev/null 2>&1; wine /app/server/CoiDedicated.exe --help'
-          docker run --rm --entrypoint bash "$IMAGE:$VERSION" -c 'wineboot -u >/dev/null 2>&1; wine /app/control/CoiDedicated.Control.exe --help'
+          docker run --rm --init --network none --entrypoint xvfb-run "$IMAGE:$VERSION" -a bash -euc '
+            WINEDLLOVERRIDES="mscoree,mshtml=" timeout 180 wineboot -u >/dev/null 2>&1
+            timeout 45 wine /app/server/CoiDedicated.exe --help
+            timeout 45 wine /app/control/CoiDedicated.Control.exe --help
+            wineserver -k
+          '
           docker run --rm --entrypoint sh "$IMAGE:$VERSION" -c 'test -z "$(find /app -iname "Mafi*.dll" -o -iname "UnityEngine*.dll" -o -name "*.key" -o -name "*.save")"'
+      - name: Verify bounded save and Steam shutdown handling
+        run: |
+          docker run --rm --network none --entrypoint bash \
+            -e COI_SUPERVISOR_TEST=1 \
+            --mount "type=bind,src=$GITHUB_WORKSPACE/docker/test-supervisor.sh,dst=/tmp/test-supervisor.sh,readonly" \
+            "$IMAGE:$VERSION" /tmp/test-supervisor.sh
       - name: Publish to GitHub Container Registry
         env:
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -21,6 +21,26 @@ mkdir -p /profile/logs /profile/.vnc
 rm -f /tmp/steam-authenticated
 server_pid=''
 stopping=0
+steam_installed() {
+    # Steam's updater uses lowercase on disk; Wine resolves either spelling,
+    # while Linux shell file checks are case-sensitive.
+    test -f "$WINEPREFIX/drive_c/Steam/steam.exe" || test -f "$WINEPREFIX/drive_c/Steam/Steam.exe"
+}
+stop_steam() {
+    # Give Steam itself time to flush its private login/offline state before
+    # ending Wine. A launcher process may have detached from the actual client.
+    if steam_installed && pgrep -ix steam.exe >/dev/null; then
+        printf 'CoI dedicated: requesting normal Steam shutdown.\n'
+        steam_deadline=$((SECONDS + 45))
+        timeout -k 5 15 wine 'C:\Steam\Steam.exe' -shutdown >>/profile/logs/steam-shutdown.log 2>&1 || true
+        while pgrep -ix steam.exe >/dev/null && test "$SECONDS" -lt "$steam_deadline"; do sleep 1; done
+        if pgrep -ix steam.exe >/dev/null; then
+            printf 'CoI dedicated: Steam shutdown timed out; its cached sign-in state may need reauthentication.\n' >&2
+            return 1
+        fi
+    fi
+    return 0
+}
 shutdown() {
     test "$stopping" = 0 || return
     stopping=1
@@ -32,7 +52,10 @@ shutdown() {
         accepted=0
         while kill -0 "$server_pid" 2>/dev/null && test "$SECONDS" -lt "$deadline"; do
             if test "$accepted" = 0 && test -s /data/control.key; then
-                if timeout 35 /app/control.sh --name docker-stop --command shutdown >>/profile/logs/shutdown.log 2>&1; then accepted=1; fi
+                remaining=$((deadline - SECONDS))
+                test "$remaining" -gt 0 || break
+                test "$remaining" -le 35 || remaining=35
+                if timeout -k 5 "$remaining" /app/control.sh --name docker-stop --command shutdown >>/profile/logs/shutdown.log 2>&1; then accepted=1; fi
             fi
             sleep 2
         done
@@ -52,6 +75,9 @@ shutdown() {
             printf 'CoI dedicated: host exited unsuccessfully after shutdown; final save is not confirmed.\n' >&2
         fi
     fi
+    if ! stop_steam; then
+        test "$server_result" -ne 0 || server_result=1
+    fi
     # No simulation remains. End only this container's private Wine session.
     wineserver -k >/dev/null 2>&1 || true
     exit "$server_result"
@@ -60,8 +86,10 @@ trap shutdown TERM INT
 Xvfb :99 -screen 0 1280x800x24 -nolisten tcp >/profile/logs/xvfb.log 2>&1 &
 openbox >/profile/logs/openbox.log 2>&1 &
 printf 'CoI dedicated: initializing the private Wine profile.\n'
-timeout 180 wineboot -u >/profile/logs/wineboot.log 2>&1 || fail 'Wine initialization failed; inspect the private wineboot log.'
-winecfg -v win10 >/profile/logs/winecfg.log 2>&1
+# Skip optional Mono/Gecko installation only while bootstrapping the prefix.
+# CoreCLR still needs Wine's mscoree loader for managed PE images at runtime.
+WINEDLLOVERRIDES='mscoree,mshtml=' timeout 180 wineboot -u >/profile/logs/wineboot.log 2>&1 || fail 'Wine initialization failed; inspect the private wineboot log.'
+WINEDLLOVERRIDES='mscoree,mshtml=' winecfg -v win10 >/profile/logs/winecfg.log 2>&1
 # No web desktop starts until an administrator sets its VNC password privately.
 if ! test -s /profile/.vnc/passwd; then
     printf 'CoI dedicated: run /app/steam-ui.sh in the container console to set the VNC password. No island is loaded.\n'
@@ -69,21 +97,26 @@ if ! test -s /profile/.vnc/passwd; then
 fi
 x11vnc -display :99 -localhost -rfbport 5900 -rfbauth /profile/.vnc/passwd -forever -shared -noxdamage >/profile/logs/x11vnc.log 2>&1 &
 websockify --web /usr/share/novnc 0.0.0.0:6080 localhost:5900 >/profile/logs/novnc.log 2>&1 &
-steam="$WINEPREFIX/drive_c/Steam/Steam.exe"
-if ! test -f "$steam"; then
+if ! steam_installed; then
     printf 'CoI dedicated: downloading the official Steam installer into the private profile.\n'
     curl --fail --show-error --location --retry 3 https://cdn.akamai.steamstatic.com/client/installer/SteamSetup.exe -o /profile/SteamSetup.exe
     printf '%s  /profile/SteamSetup.exe\n' '7d3654531c32d941b8cae81c4137fc542172bfa9635f169cb392f245a0a12bcb' | sha256sum --check --strict - >/profile/logs/installer-check.log || fail 'Steam installer checksum changed; review and update the pinned official installer.'
     timeout 180 wine /profile/SteamSetup.exe /S '/D=C:\Steam' >/profile/logs/steam-install.log 2>&1 || fail 'Steam installation failed.'
-    test -f "$steam" || fail 'Steam installer did not create C:\Steam\Steam.exe.'
+    steam_installed || fail 'Steam installer did not create C:\Steam\Steam.exe.'
 fi
 LIBGL_ALWAYS_SOFTWARE=1 wine 'C:\Steam\Steam.exe' >/profile/logs/steam-client.log 2>&1 &
 printf 'CoI dedicated: sign into your owning Steam account through the secured desktop and complete Steam Guard there.\n'
 printf 'CoI dedicated: waiting for genuine Steam initialization and ownership checks. No island is loaded.\n'
 while true; do
+    if ! test -f /profile/steam-setup-ready; then
+        rm -f /tmp/steam-authenticated
+        printf 'CoI dedicated: finish Steam setup, then run /app/steam-ui.sh validate. No SDK check or island load starts before this setup gate.\n'
+        until test -f /profile/steam-setup-ready; do sleep 2; done
+    fi
     # Native SDK output may contain account identifiers; keep it in the private
     # profile rather than the shared Portainer log. The host repeats this check.
     if timeout 45 wine /app/steam-check/CoiDedicated.SteamCheck.exe --game-dir 'Z:\game' > /profile/logs/steam-check.log 2>&1; then
+        test -f /profile/steam-setup-ready || continue
         touch /tmp/steam-authenticated
         if test "${COI_AUTH_ONLY:-true}" = false; then break; fi
         printf 'CoI dedicated: Steam validation passed; authentication-only mode keeps the island unloaded.\n'
@@ -108,6 +141,9 @@ wait "$server_pid"
 result=$?
 set -e
 server_pid=''
+if ! stop_steam; then
+    test "$result" -ne 0 || result=1
+fi
 wineserver -k >/dev/null 2>&1 || true
 if test "$result" -ne 0; then
     printf 'CoI dedicated: server failed; inspect /profile/logs/server.log privately.\n' >&2

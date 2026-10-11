@@ -4,18 +4,43 @@ set -euo pipefail
 test "${COI_SUPERVISOR_TEST:-}" = 1 || { echo 'Requires COI_SUPERVISOR_TEST=1 in an isolated test container.' >&2; exit 1; }
 entrypoint=${1:-/app/entrypoint.sh}
 function_source=$(sed -n '/^shutdown() {$/,/^}$/p' "$entrypoint")
+steam_function_source=$(sed -n '/^stop_steam() {$/,/^}$/p' "$entrypoint")
+installed_function_source=$(sed -n '/^steam_installed() {$/,/^}$/p' "$entrypoint")
 test -n "$function_source"
+test -n "$steam_function_source"
+test -n "$installed_function_source"
 test ! -e /data/control.key || { echo 'Refusing to overwrite an existing control key.' >&2; exit 1; }
 printf 'isolated-test-placeholder\n' >/data/control.key
 trap 'rm -f /data/control.key' EXIT
 mkdir -p /profile/logs
 run_case() (
     eval "$function_source"
+    eval "$steam_function_source"
+    eval "$installed_function_source"
     stopping=0
     server_pid=''
+    export WINEPREFIX=/tmp/supervisor-test-wine
+    mkdir -p "$WINEPREFIX/drive_c/Steam"
+    touch "$WINEPREFIX/drive_c/Steam/steam.exe"
+    steam_active=1
+    steam_hang=${2:-0}
     # Simulate a successful command acknowledgement. The actual child exit
     # happens after the ACK, reproducing a final-save failure in the host.
-    timeout() { printf 'mock ACK\n'; return 0; }
+    timeout() {
+        if test "$1" = -k; then shift 2; fi
+        shift
+        if test "$1" = /app/control.sh; then printf 'mock ACK\n'; return 0; fi
+        "$@"
+    }
+    pgrep() { test "$steam_active" = 1; }
+    wine() {
+        test "$1" = 'C:\Steam\Steam.exe' && test "$2" = -shutdown
+        if test "$steam_hang" = 0; then steam_active=0; fi
+    }
+    sleep() {
+        # Advance the bounded timeout in the mocked hung-Steam case.
+        if test "$1" = 1; then SECONDS=$((SECONDS + 46)); else command sleep "$@"; fi
+    }
     wineserver() { return 0; }
     if test "$1" != none; then
         (sleep 0.2; exit "$1") &
@@ -33,4 +58,10 @@ done
 grep -q 'mock ACK' /profile/logs/shutdown.log
 grep -q 'final save is not confirmed' /tmp/shutdown-1.log
 run_case none >/tmp/shutdown-no-host.log 2>&1
-printf 'PASS: ACK then successful host exit; ACK then failed final-save exit; no-world shutdown.\n'
+set +e
+run_case 0 1 >/tmp/shutdown-steam-hung.log 2>&1
+actual=$?
+set -e
+test "$actual" = 1
+grep -q 'Steam shutdown timed out' /tmp/shutdown-steam-hung.log
+printf 'PASS: host success/final-save failure preserved; normal Steam shutdown; bounded Steam failure; no-world shutdown.\n'

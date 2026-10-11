@@ -27,7 +27,7 @@ For release changes and tested behavior, see the [alpha.6 release notes](docs/re
 
 ## Docker and Portainer
 
-**The published alpha.5 Docker image must not be used.** Current source contains an experimental Linux amd64 replacement that runs the Windows host and a genuine Windows Steam client together under Wine, with a persistent private profile. Authentication-only mode leaves the island unloaded by default. See the [Docker / Portainer guide](docs/docker-portainer.md) for current test evidence, required validation, and stack setup.
+**The published alpha.5 Docker image must not be used.** The experimental Linux amd64 replacement runs the Windows host and a genuine Windows Steam client together under Wine, with a persistent private profile. Local tests passed real ownership validation in Steam's normal Offline Mode, multiplayer replay, a Windows client through Docker's published port, and save/stop/restart. Initial setup waits before SDK checks, and authentication-only mode leaves the island unloaded by default. See the [Docker / Portainer guide](docs/docker-portainer.md) for setup and remaining target-host validation.
 
 The native Linux host cannot run CoI's installed Windows Steam wrapper. Copying game files into that old container is insufficient. The tested native hosting option is Windows x64 with Steam signed in, as described in the [hosting guide](docs/hosting-guide.md).
 
