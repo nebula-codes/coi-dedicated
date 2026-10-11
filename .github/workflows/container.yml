@@ -1,4 +1,4 @@
-name: Publish Linux container
+name: Publish authenticated Wine container (validation pending)
 
 on:
   release:
@@ -8,7 +8,7 @@ on:
       version:
         description: Published release version, without the v prefix
         required: true
-        default: 0.1.0-alpha.5
+        default: 0.1.0-alpha.6
 
 permissions:
   contents: read
@@ -20,10 +20,10 @@ concurrency:
 
 jobs:
   publish:
-    # Client-only hotfixes keep using the existing server image.
-    if: github.event_name != 'release' || contains(github.event.release.assets.*.name, 'SHA256SUMS-linux.txt')
+    # Disabled until genuine Steam login and the Windows host pass the Wine end-to-end check.
+    if: false
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 45
     env:
       IMAGE: ghcr.io/nebula-codes/coi-dedicated
       RELEASE_TAG: ${{ github.event.release.tag_name }}
@@ -39,11 +39,11 @@ jobs:
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$ ]]; then
             echo 'Invalid release version'; exit 1
           fi
-          ARCHIVE="CoI-Dedicated-Server-$VERSION-linux-x64.zip"
+          ARCHIVE="CoI-Server-Manager-$VERSION-win-x64.zip"
           RELEASE_URL="https://github.com/$GITHUB_REPOSITORY/releases/download/v$VERSION"
-          curl --fail --show-error --location --retry 3 "$RELEASE_URL/SHA256SUMS-linux.txt" -o checksums.txt
+          curl --fail --show-error --location --retry 3 "$RELEASE_URL/SHA256SUMS.txt" -o checksums.txt
           SHA="$(awk -v file="$ARCHIVE" '{ sub(/\r$/, "", $0) } $2 == file {print $1}' checksums.txt)"
-          if [[ ! "$SHA" =~ ^[a-fA-F0-9]{64}$ ]]; then echo 'Missing or ambiguous Linux archive checksum'; exit 1; fi
+          if [[ ! "$SHA" =~ ^[a-fA-F0-9]{64}$ ]]; then echo 'Missing or ambiguous Windows archive checksum'; exit 1; fi
           printf 'VERSION=%s\nSERVER_ARCHIVE_SHA256=%s\nSERVER_ARCHIVE_URL=%s/%s\n' "$VERSION" "$SHA" "$RELEASE_URL" "$ARCHIVE" >> "$GITHUB_ENV"
       - name: Build from the checksum-pinned distributable
         run: |
@@ -55,8 +55,8 @@ jobs:
             --tag "$IMAGE:$VERSION" --tag "$IMAGE:alpha" .
       - name: Verify application starts without bundled game files
         run: |
-          docker run --rm --entrypoint dotnet "$IMAGE:$VERSION" /app/server/CoiDedicated.dll --help
-          docker run --rm --entrypoint dotnet "$IMAGE:$VERSION" /app/control/CoiDedicated.Control.dll --help
+          docker run --rm --entrypoint bash "$IMAGE:$VERSION" -c 'wineboot -u >/dev/null 2>&1; wine /app/server/CoiDedicated.exe --help'
+          docker run --rm --entrypoint bash "$IMAGE:$VERSION" -c 'wineboot -u >/dev/null 2>&1; wine /app/control/CoiDedicated.Control.exe --help'
           docker run --rm --entrypoint sh "$IMAGE:$VERSION" -c 'test -z "$(find /app -iname "Mafi*.dll" -o -iname "UnityEngine*.dll" -o -name "*.key" -o -name "*.save")"'
       - name: Publish to GitHub Container Registry
         env:

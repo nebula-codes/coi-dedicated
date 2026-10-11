@@ -1,136 +1,95 @@
-# Run the dedicated server in Portainer
+# Authenticated Docker / Portainer hosting candidate
 
-**Deployment paused — do not deploy or continue hosting with the published alpha.5 Docker image.** Its startup omits the game's required Steam validation and can trigger a delayed pirate game-over that damages the island. Preserve the data volume and separate backups. The current Linux container cannot complete the required validation and is not a safe or ready hosting option. Current source stops on Linux before loading an island. See [the incident and validation ledger](server-startup-validation.md).
+**Deployment of the published alpha.5 Docker image remains paused.** Its missing Steam startup validation can cause a delayed pirate game-over and damage an island. Preserve its data volume and separate backups. Do not resume that image. The corrected native Linux host refuses to load an island because it cannot run the installed Windows Steam wrapper. See the [startup incident and validation ledger](server-startup-validation.md).
 
-The current startup implementation requires Windows x64 with Steam running and signed into an account that owns Captain of Industry. It calls the installed game's unchanged Facepunch `SteamClient.Init`, then checks `SteamClient.IsValid` and `SteamApps.IsSubscribed` before world initialization. No Unity game window is required. Copying game files or credentials into a Linux container does not establish this supported startup path. Container support needs a supported authenticated hosting design and runtime validation before deployment can resume.
+The Docker files in the current source are an **experimental replacement**, using the Windows server and genuine Windows Steam client together under Wine. They are not a newly published or validated hosting release. **Authentication-only mode is the default: no island loads.** Real Steam authentication and a copied-island load have passed locally, but the Steam client exits unexpectedly in this Wine environment. Stable simulation, reconnect, and graceful stop/restart tests must pass before this candidate is used for a live island.
 
-**Everything below is archived alpha.5 configuration, retained for reference only. These instructions are unvalidated for authenticated startup and must not be treated as deployment instructions for a current working server.** The startup correction is in source; no corrected Docker release is announced here. The alpha.5 and alpha.5.1 Windows clients remain unchanged.
+## Why this needs a real Steam client
 
-The archived stack targets a **Linux Intel/AMD 64-bit Docker host**. Portainer supplies start, stop, restart, logs, console, and health status. The Windows browser manager is not part of this image. Players use the Windows CoI multiplayer client.
+The server calls the game's unchanged Facepunch `SteamClient.Init`, checks `SteamClient.IsValid` and `SteamApps.IsSubscribed`, and stops before world loading on failure. Valve documents that client initialization requires Steam running in the same user context with an account owning the application. [Steamworks initialization](https://partner.steamgames.com/doc/sdk/api), [subscription API](https://partner.steamgames.com/doc/api/ISteamApps).
 
-This is an unofficial alpha for **Captain of Industry 0.8.7d**. It has the same command coverage as the Windows server, including native building batches, roads, transports, terrain, truck assignment, logistics, and many inspector controls. It supports shared speeds 1–4 and selected-state checkpoints. The matching client attempts bounded snapshot recovery after a connection or state failure. See the [coverage ledger](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/docs/multiplayer-coverage.md) and [synchronization limits](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/docs/synchronization.md); full gameplay parity and long-session determinism remain unproven.
+A generic anonymous game-server login or a connecting player's authentication ticket does not establish this local owning-client session. These APIs have different purposes; this project cannot substitute them for CoI's checks. [Steam game-server API](https://partner.steamgames.com/doc/api/ISteamGameServer), [authentication tickets](https://partner.steamgames.com/doc/features/auth). No application-ID overrides, fabricated subscription responses, copied session tokens, or game patches are used.
 
-## 1. Copy your installed game to the Linux host
+## Candidate layout
 
-Copy the **entire** `Captain of Industry` installation from your own Windows Steam library to a directory on the Linux machine running Docker, for example:
+The image targets Linux **amd64** Docker Standalone, with Windows x64 .NET self-contained binaries and Wine 11.0. Ubuntu's base image digest and Wine package version are pinned in the Dockerfile. The official Steam installer is downloaded into the private profile and checked against a pinned SHA-256; Steam subsequently updates itself normally. A changed installer checksum stops setup until the new official installer is reviewed.
 
-```text
-/srv/coi/game/
-  Captain of Industry_Data/
-    Managed/Mafi.dll
-    Managed/Mafi.Core.dll
-    Managed/Mafi.Base.dll
-    Plugins/x86_64/steam_api64.dll
-  Maps/New Haven.map
-  ...the rest of the installation...
-```
+- `/game`: your complete matching Windows CoI 0.8.7d installation, mounted read-only from the Linux host. Game files are never put in the public image or source context.
+- `/data`: island, saves, control key, and player join key. Use a separate new volume for candidate testing.
+- `/profile`: private Wine prefix, Steam installation and login state, VNC password, and private authentication diagnostics. Keep it separate from shareable island backups. Do not publish, export to friends, or upload this volume.
+- TCP 28551: the player endpoint, inactive in authentication-only mode. Keep it on a trusted LAN/VPN.
+- TCP 28550: administrative endpoint inside the container only.
+- TCP 6080: Steam desktop web interface, published **only on the host's loopback** at port 28680. No server-manager web dashboard is included.
 
-Use your NAS file share, SFTP, or another normal file copy. Preserve the original filename case and directory structure. `/srv/coi/game` is an example **Linux host path**, not a path on the Windows PC or the machine merely displaying Portainer. The container needs read access to these files and traverse access to their directories as UID/GID **1654**.
+The application runs as UID/GID **1654**, with a read-only root filesystem, dropped capabilities, no privileged mode, and no Docker socket mount. Allow several gigabytes for the Wine image, prefix, and Steam updates, in addition to your game files and island data. The exact long-session resource requirements remain unmeasured.
 
-Use matching game assemblies and DLC configuration on server and clients. The current integration supports the base-game save dependencies only. Keep a separate server copy so a Steam update cannot change a running island's game files. The public container and GitHub downloads contain our server software, not the game, Steam credentials, saves, or keys. This archived setup has no validated Steam session and is insufficient for safe hosting.
+Docker Desktop on Windows is only a local proof environment. Its Windows bind mounts caused Wine to fail when mapping Windows executable/assembly images. The proof used unchanged files copied into a private native Docker volume; this is not evidence that the game files or .NET needed modification. The deployment target is a Linux host with native filesystem mounts.
 
-## 2. Deploy the stack
+## Build inputs and stack
 
-In your **Docker Standalone** environment in Portainer:
+There is deliberately no automatic fallback to the broken alpha.5 image or ZIP. [compose.portainer.yml](../compose.portainer.yml) requires `COI_IMAGE` to name a reviewed candidate image. [compose.portainer.build.yml](../compose.portainer.build.yml) additionally requires:
 
-1. Open **Stacks → Add stack**, name it `coi-dedicated`, and select **Web editor**.
-2. Paste [compose.portainer.yml](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/compose.portainer.yml).
-3. Under **Environment variables**, add `COI_GAME_DIR` with the absolute Linux game directory, for example `/srv/coi/game`.
-4. Optionally set `COI_BIND_IP` to the Linux host's LAN IP to restrict the published player port to that interface. Its default is `0.0.0.0`.
-5. Select **Deploy the stack**. Open the container's **Logs** while it prepares the world. Health changes from `starting` to `healthy` once the simulation answers authenticated status requests.
+- `COI_BUILD_CONTEXT`: a reviewed source checkout or Git URL containing this Dockerfile.
+- `COI_SERVER_VERSION`, `COI_SERVER_ARCHIVE_URL`, `COI_SERVER_ARCHIVE_SHA256`: a corrected Windows manager archive and its checksum.
 
-The image is `ghcr.io/nebula-codes/coi-dedicated:0.1.0-alpha.5`, and the stack explicitly selects `linux/amd64`. ARM NAS/Raspberry Pi, Docker Swarm, and Kubernetes are not covered by this stack. Initial world creation can take several minutes; health has a five-minute startup allowance. A Docker `unhealthy` status is a diagnostic, not an automatic restart trigger.
+That archive must contain `bin/server`, `bin/control`, and `bin/steam-check`. Older manager archives without the new helper are rejected. The build extracts only these redistributable applications, and checks that game assemblies, keys, and saves are absent. It never sends `/game` or the persistent profile to the build context. No corrected downloadable archive is announced by this guide.
 
-The named volume **`coi-dedicated-data`** holds the island, keys, autosaves, and bootstrap logs. Docker initializes a new volume with ownership for the non-root app user. The explicit volume name preserves the same data when the stack is redeployed; use a different `COI_DATA_VOLUME` for a separate island. Run only one server against a data volume.
+Set `COI_GAME_DIR` to the complete installation's absolute path **on the Linux Docker host**, such as `/srv/coi/game`; a Windows PC path does not refer to a remote Portainer host. Preserve filename case and directory structure. Ensure UID 1654 can read it. Set separate test volume names, such as `COI_DATA_VOLUME=coi-auth-test-data` and `COI_STEAM_VOLUME=coi-auth-test-steam-private`.
 
-The game mount is read-only. The container root filesystem is also read-only; its persistent writes go to `/data`, and temporary files go to `/tmp`. A small symlink view at the stable path `/tmp/coi-game` accommodates the Windows game's backslash-based dependency paths on Linux, while still reading the original files. The view is recreated on each container start; the actual save and keys remain in `/data`. No game DLL is patched. The image runs as UID/GID **1654**, drops Linux capabilities, and does not require privileged mode or a Docker socket mount.
+Keep `COI_AUTH_ONLY=true` for initial setup. This setting remains the default even after successful login. The container will not load an island until it is explicitly changed to `false`; that change must follow runtime validation, not simply the appearance of a Steam window.
 
-If your registry cannot fetch GHCR, use [compose.portainer.build.yml](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/compose.portainer.build.yml) instead. This builds from the tagged public repository and checks the SHA-256 of the public Linux package. It requires outbound access to GitHub, Microsoft's image registry, and Ubuntu package repositories. Your game folder remains a runtime mount and never becomes build context or image content.
+## Private Steam sign-in
 
-## 3. Connect players
-
-Allow inbound **TCP 28551** on the Linux host/NAS firewall from your home network. On a shared home network, no router port forwarding is needed. Use a trusted LAN or VPN: gameplay traffic is authenticated but not encrypted.
-
-Give players:
-
-- The Windows [multiplayer client download](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.5) and the [player guide](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/docs/player-guide.md). This container keeps the same `dedicated-prototype-5 / cmd1` wire protocol; exact game assembly fingerprints must also match.
-- The **Linux host's LAN IP**, and player port **28551** (or your `COI_GAME_PORT`). Do not use the container's internal IP or the old Windows host address.
-- The server's **join.key**, sent privately.
-
-The server generates `/data/join.key` and `/data/control.key` on first start, unless you imported them. To copy the player key to your Linux host, find the container name in Portainer and run:
+Portainer's own HTTPS login does **not** secure a different desktop port. Do not change the stack's loopback publication to `0.0.0.0` for convenience. Access the desktop through an SSH tunnel, or an existing correctly authenticated TLS reverse proxy with restricted access. For an SSH-capable Linux host:
 
 ```sh
-docker cp <container-name>:/data/join.key ./join.key
-chmod 600 ./join.key
+ssh -N -L 28680:127.0.0.1:28680 your-user@your-docker-host
 ```
 
-Alternatively, copy the key privately through a trusted volume/file manager. Avoid printing it into a shared console or posting it in an issue. Players select the full path to their private `join.key` file in the in-game **F8** panel. Keep **control.key** only with the server administrator.
-
-Only the player port is published. Administration uses TCP 28550 inside the container; do not publish it. There is no browser dashboard port in this image.
-
-## Move the current Windows island
-
-Migrate before deploying a fresh island, or stop the new stack first. This transfers a copy; it does not remove your Windows data.
-
-1. In the Windows manager, create and download a current backup. Download that profile's player `join.key` too.
-2. Stop the Windows profile and wait for **Stopped**. If gameplay continued after the backup, take/download a new stopped-state backup so the transfer includes the final changes.
-3. Copy the backup to the Linux host as `/srv/coi/import/island.save`, and the key as `/srv/coi/import/join.key`. These are private files, not GitHub assets.
-4. On the Linux host, import them into an unused data volume with the commands below. If `island.save` or `join.key` already exists in that volume, the import deliberately stops. Back up existing data and select a new volume name to perform a separate import.
-5. Deploy the stack with `COI_DATA_VOLUME=coi-dedicated-data`. It resumes `island.save` automatically, preserving the player's join key. Give players the Linux host's new address.
+In Portainer, open the container's console as its default user and run:
 
 ```sh
-docker volume create coi-dedicated-data
-docker run --rm --user 0:0 --entrypoint /bin/sh \
-  --mount type=volume,source=coi-dedicated-data,target=/data \
-  --mount type=bind,source=/srv/coi/import,target=/import,readonly \
-  ghcr.io/nebula-codes/coi-dedicated:0.1.0-alpha.5 \
-  -c 'set -eu; test ! -e /data/island.save; test ! -e /data/join.key; chown 1654:1654 /data; chmod 700 /data; install -o 1654 -g 1654 -m 600 /import/island.save /data/island.save; install -o 1654 -g 1654 -m 600 /import/join.key /data/join.key'
+/app/steam-ui.sh
 ```
 
-This one-time import runs as root to set file ownership; the game server runs as the non-root app user. It creates a fresh admin key on start. Preserve the Windows profile as a rollback copy and avoid running two independent copies if you expect one shared island history.
+Enter a unique VNC password directly at the prompt. VNC uses only its first eight characters; its password is an additional local access barrier, not transport encryption. The script never accepts the password as an environment variable or command-line argument. The desktop waits until its password file exists.
 
-## Controls, backups, and updates
+Open `http://127.0.0.1:28680/vnc.html` on the tunneled computer. Enter the VNC password, then sign into **your account that owns Captain of Industry** in the actual Steam window and complete Steam Guard there. Do not send your Steam password or Guard code to this project or put either in a stack environment variable. Steam remembers its session in the private profile volume; it may require reauthentication after a restart or Steam update.
 
-Use Portainer's container **Console** with `/bin/sh`. The wrapper reads the admin key from the data volume without putting its value in arguments:
+The no-world `CoiDedicated.SteamCheck` helper performs the same real startup checks used by the server. The public container log reports success or waiting status; native authentication diagnostics stay in `/profile/logs/steam-check.log` because SDK output may include account identifiers. In authentication-only mode, a healthy status means the latest check passed, **not** that gameplay or save handling has been validated.
+
+The host repeats the checks itself before each world load. A helper success file is never used as authority to skip that validation. If the owning Steam session is unavailable, setup waits and no island is loaded.
+
+## Hosting and lifecycle validation still required
+
+Before moving a live island, use a copied save in a new test data volume and verify all of the following on the actual Linux host: real Steam validation, complete bootstrap/load, sustained simulation beyond the old failure window, matching client replay/checkpoints, saves, reconnect, and graceful stop/restart. Compare the copied world's population and entities before and after. Authentication success alone does not prove Wine's long-session compatibility.
+
+When these checks pass, `COI_AUTH_ONLY=false` starts the Windows host under the same Wine prefix and user as Steam. It resumes `/data/island.save` if present, otherwise uses `COI_MAP` and `COI_STARTING_FACTORY`. The default autosave interval is 60 seconds, controlled by `COI_AUTOSAVE_SECONDS`.
+
+Container-console controls are:
 
 ```sh
 /app/control.sh --command status
 /app/control.sh --command pause
 /app/control.sh --command resume
 /app/control.sh --command save
-/app/control.sh --command snapshot --output /data/backups/manual-001.save
+/app/control.sh --command shutdown
 ```
 
-Choose a new filename for each snapshot; existing files are never overwritten by the control client. Snapshot transfer verifies SHA-256. Copy the snapshot off the NAS/host with `docker cp <container-name>:/data/backups/manual-001.save ./manual-001.save` for a separate backup. Preserve the complete data volume for recovery, including keys; autosave's one previous generation does not replace offline backups.
+The wrapper reads the control key privately from `/data/control.key`. On container stop, the supervisor requests authenticated shutdown, waits for the simulation to exit, and only then terminates its Wine session. During bootstrap it waits for the control endpoint to become available. The stack grants a 300-second stop period; a shutdown timeout is explicitly an unconfirmed final save, not a successful save. Always retain an independent known-good backup.
 
-Use Portainer **Stop** or **Restart** for lifecycle controls. Docker sends SIGTERM, and the host saves before exiting. The stack gives it **120 seconds** before Docker force-stops it. Larger/slow islands may need a longer `stop_grace_period`; a force kill cannot promise a final save. `restart: unless-stopped` restarts a crashed process or resumes after a Docker-host restart, while a deliberately stopped container stays stopped. Do not use the control client's `shutdown` for a permanent stop under this restart policy, because Docker can restart that exited process.
+Give players only their matching Windows multiplayer client, the Linux host's LAN/VPN address and TCP player port, and the private `join.key`. Never send the Steam profile or `control.key`. The current alpha.6 candidate requires matching alpha.6 clients and revision 6; alpha.5 / alpha.5.1 clients cannot join it. Exact game assembly fingerprints must also match. The [coverage ledger](multiplayer-coverage.md) and [synchronization limits](synchronization.md) still apply.
 
-On restart, an existing `/data/island.save` takes precedence over new-world map settings. To create another island, use a new data volume and a different player port. Do not delete the old volume to change settings. When removing a stack, retain its data volume; deleting the volume deletes the island and keys.
+## Evidence so far
 
-Before updating, take an offline backup, stop the stack, and record the previous image tag. Update server/client releases and game files as a compatible set. Do not point the container at files being modified by Steam. If a new release cannot load your island, restore a separate backup with the previous game/image version.
-
-## Configuration
-
-| Portainer variable | Default | Meaning |
-| --- | --- | --- |
-| `COI_GAME_DIR` | Required | Absolute game installation path on the Linux Docker host. |
-| `COI_DATA_VOLUME` | `coi-dedicated-data` | Persistent named volume; keep it across updates. |
-| `COI_BIND_IP` | `0.0.0.0` | Host interface for the published player port. |
-| `COI_GAME_PORT` | `28551` | Player port on the Linux host. Container port stays 28551. |
-| `COI_MAP` | `New Haven` | Exact shipped map name without `.map`; new islands only. |
-| `COI_STARTING_FACTORY` | `true` | Starting factory on a new island; `true` or `false`. |
-| `COI_AUTOSAVE_SECONDS` | `60` | Autosave interval, minimum 10 seconds. |
-
-For a host bind mount instead of the `/data` named volume, create a dedicated directory and assign UID/GID 1654 ownership before deployment. An existing named volume created by another image may also need its ownership repaired while the server is stopped. Do not solve write failures by enabling privileged mode or giving the whole game directory write access.
-
-## Build the public Linux package
-
-**Historical build reference only:** compiling or publishing Linux binaries does not validate authenticated startup. Current host source rejects Linux before world loading. Developers need .NET SDK 10, PowerShell 7, this source checkout, and their own matching CoI installation. The compilation can run on Windows; the result is framework-dependent Linux x64 managed binaries, with no game DLLs copied into the package:
-
-```powershell
-pwsh ./scripts/package-linux-server.ps1 -GameDir 'F:\SteamLibrary\steamapps\common\Captain of Industry'
-```
-
-The script emits `CoI-Dedicated-Server-0.1.0-alpha.5-linux-x64.zip` and `SHA256SUMS-linux.txt`. Release maintainers publish the ZIP and checksum together. The release workflow selects the matching version and verifies its archive checksum before publishing the image; the Dockerfile also pins the current release for source builds. The runtime image supplies .NET 10. The Linux ZIP alone is not a self-contained executable and does not include the Windows browser manager.
-
-Container behavior follows the official [Docker Compose service reference](https://docs.docker.com/reference/compose-file/services/) and [Microsoft .NET container guidance](https://learn.microsoft.com/dotnet/core/docker/introduction). Portainer's [stack deployment guide](https://docs.portainer.io/user/docker/stacks/add) describes its editor and environment variables.
+- Official Windows Steam installer downloaded and its Valve Authenticode signature and SHA-256 verified.
+- Isolated Ubuntu/Wine 11 image built locally; no live server or installed client changed.
+- Windows self-contained .NET 10 host runs after avoiding Docker Desktop's Windows executable bind-mount mapping problem.
+- Both .NET 8 and .NET 10 no-world probes reached genuine Steam initialization and correctly refused startup before Steam installation/login. Production remains .NET 10.
+- Actual Windows Steam installed and completed its initial self-update in the isolated prefix; the password-protected loopback desktop is available for direct sign-in.
+- The owner completed Steam Guard through the genuine Steam mobile QR flow. The installed game's unchanged Steam initializer, valid-client check, and subscription check passed inside Wine. The private profile retained sign-in across Steam relaunches without another Guard prompt.
+- A complete, unchanged game-file copy passed a zero-step load of a copied pre-incident island: step 114859, population 97, and 87 entities. SHA-256 checks of the principal game assemblies, native Steam library, game executable, and Unity player matched the original installation. Omitting root game files initially triggered native integrity Err #13; supplying the complete files resolved it without changing the check.
+- Candidate Wine initialization passed with the actual read-only root, dropped capabilities, no-new-privileges, and non-executable `/tmp` restrictions. It waited for a private VNC password, loaded no island, and stopped with exit code 0.
+- Supervisor regressions exercise the actual shutdown function: command ACK followed by host exit 0 succeeds; ACK followed by a failed final save/host exit 1 remains failure; stopping before a world exists succeeds. An ACK alone is not treated as proof of a completed save.
+- **Current blocker:** Steam exits with code 1 after roughly 40–53 seconds in local tests. When its session is missing, the corrected server refuses world loading. Blank Steam UI text is also unresolved; the genuine mobile QR flow worked for sign-in. No client/game validation was disabled.
+- **Pending:** stable Steam lifetime, sustained island simulation, two-client replay, save/shutdown/restart, exact release-download-stage build, and target Portainer validation. The current files are a candidate, not a ready-to-deploy release.

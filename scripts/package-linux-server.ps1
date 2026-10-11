@@ -6,6 +6,7 @@ param(
     [string]$OutputDirectory
 )
 $ErrorActionPreference = 'Stop'
+throw 'Native Linux packaging is disabled: authenticated hosting requires the Windows package under Wine. Use scripts/package-release.ps1 and read docs/docker-portainer.md.'
 $repository = Split-Path $PSScriptRoot -Parent
 if (-not $GameDir) { throw 'Supply -GameDir or set COI_GAME_DIR to your installed Captain of Industry folder.' }
 $GameDir = (Resolve-Path -LiteralPath $GameDir).Path

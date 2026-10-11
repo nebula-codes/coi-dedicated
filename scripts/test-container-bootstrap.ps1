@@ -6,6 +6,7 @@ param(
     [Parameter(Mandatory = $true)][string]$SaveFile
 )
 $ErrorActionPreference = 'Stop'
+throw 'This archived test targets the unauthenticated native Linux image and cannot validate the Wine/Steam stack. See docs/docker-portainer.md for current validation requirements.'
 if (-not $GameDir) { $GameDir = 'F:\SteamLibrary\steamapps\common\Captain of Industry' }
 $GameDir = (Resolve-Path -LiteralPath $GameDir).Path
 $SaveFile = (Resolve-Path -LiteralPath $SaveFile).Path

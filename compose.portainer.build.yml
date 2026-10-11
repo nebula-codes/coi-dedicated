@@ -1,23 +1,31 @@
-# Alternate stack: build from the public repository if GHCR is unavailable.
-# This downloads only the checksum-pinned public server package, never /game.
+# Experimental authenticated hosting candidate. See docs/docker-portainer.md.
+# No corrected public image is assumed. Start in authentication-only mode.
 services:
   coi-server:
-    image: coi-dedicated:0.1.0-alpha.5-local
+    image: "${COI_IMAGE:?Set COI_IMAGE to the reviewed authenticated candidate image}"
     build:
-      context: https://github.com/nebula-codes/coi-dedicated.git#v0.1.0-alpha.5
+      context: "${COI_BUILD_CONTEXT:?Set a reviewed source checkout or Git URL containing the authenticated Dockerfile}"
       dockerfile: Dockerfile
+      args:
+        SERVER_VERSION: "${COI_SERVER_VERSION:?Set the corrected Windows package version}"
+        SERVER_ARCHIVE_URL: "${COI_SERVER_ARCHIVE_URL:?Set the corrected Windows manager archive URL}"
+        SERVER_ARCHIVE_SHA256: "${COI_SERVER_ARCHIVE_SHA256:?Set the archive SHA-256}"
     platform: linux/amd64
     init: true
     restart: unless-stopped
-    stop_grace_period: 120s
+    stop_grace_period: 300s
     read_only: true
+    shm_size: 512m
     cap_drop:
       - ALL
     security_opt:
       - no-new-privileges:true
     ports:
       - "${COI_BIND_IP:-0.0.0.0}:${COI_GAME_PORT:-28551}:28551/tcp"
+      # Keep loopback. Use an SSH tunnel or an authenticated TLS proxy.
+      - "127.0.0.1:${COI_STEAM_UI_PORT:-28680}:6080/tcp"
     environment:
+      COI_AUTH_ONLY: "${COI_AUTH_ONLY:-true}"
       COI_MAP: "${COI_MAP:-New Haven}"
       COI_STARTING_FACTORY: "${COI_STARTING_FACTORY:-true}"
       COI_AUTOSAVE_SECONDS: "${COI_AUTOSAVE_SECONDS:-60}"
@@ -31,13 +39,16 @@ services:
       - type: volume
         source: coi-data
         target: /data
+      - type: volume
+        source: coi-steam-profile
+        target: /profile
     tmpfs:
-      - /tmp:rw,noexec,nosuid,size=128m
+      - /tmp:rw,noexec,nosuid,size=512m
     healthcheck:
       test: ["CMD", "/app/healthcheck.sh"]
       interval: 30s
-      timeout: 35s
-      start_period: 5m
+      timeout: 40s
+      start_period: 10m
       retries: 3
     logging:
       driver: json-file
@@ -48,3 +59,5 @@ services:
 volumes:
   coi-data:
     name: "${COI_DATA_VOLUME:-coi-dedicated-data}"
+  coi-steam-profile:
+    name: "${COI_STEAM_VOLUME:-coi-dedicated-steam-private}"

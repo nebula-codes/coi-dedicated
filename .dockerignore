@@ -7,3 +7,4 @@
 !docker/entrypoint.sh
 !docker/control.sh
 !docker/healthcheck.sh
+!docker/steam-ui.sh

@@ -1,6 +1,5 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
-# Arguments are ordinary Control CLI options, e.g. --command save. No key value
-# is placed in the process command line or printed by this wrapper.
-exec dotnet /app/control/CoiDedicated.Control.dll \
-    --host 127.0.0.1 --port 28550 --secret-file /data/control.key "$@"
+# Only the key's path is passed. Keep the administrative endpoint unpublished.
+exec wine /app/control/CoiDedicated.Control.exe \
+    --host 127.0.0.1 --port 28550 --secret-file 'Z:\data\control.key' "$@"

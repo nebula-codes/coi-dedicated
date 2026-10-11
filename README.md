@@ -6,13 +6,13 @@ An independent dedicated server that runs Captain of Industry's island simulatio
 
 ## Gameplay and synchronization
 
-Alpha.5 expands native building batches, roads, logistics, inspector controls, truck assignment, and camera/tool-preview sharing. It adds deterministic pacing at 1–4×, periodic selected-state checkpoints, bounded automatic snapshot recovery, and remembered connection details. Clients and servers must use compatibility revision 5. See [the coverage and test ledger](docs/multiplayer-coverage.md) for implemented paths, evidence, and remaining work. Full gameplay parity is still incomplete.
+Current alpha.6 source supports 286 command classes, including all 87 classes missing from the prior UI-observed inventory. It retains native building batches, roads, logistics, truck assignment, camera/tool-preview sharing, pacing at 1–4×, selected-state checkpoints, bounded snapshot recovery, and remembered connection details. Matching alpha.6 clients and servers use compatibility revision 6. See [the coverage and test ledger](docs/multiplayer-coverage.md) for tested paths and remaining limits; command coverage alone does not prove full gameplay parity.
 
 ## Download the alpha
 
 **Server hosting paused for the published alpha.5 packages and Docker image.** Their startup omits the game's Steam validation and can trigger a delayed pirate game-over that damages the island. Do not start a new session with those server assets. Preserve existing saves and separate backups. The correction described here is in current source; the published alpha.5 server downloads do not contain it. See [startup validation and test status](docs/server-startup-validation.md).
 
-The [alpha.5.1 client hotfix](https://github.com/nebula-codes/coi-dedicated/releases/tag/v0.1.0-alpha.5.1) restores visual interpolation between simulation updates. This server startup correction leaves the alpha.5 and alpha.5.1 clients and compatibility revision 5 unchanged. Everyone needs their own matching copy of Captain of Industry. The player package requires no SDK.
+The current alpha.6 source adds the missing 87 UI-observed command codecs and uses compatibility revision 6. Every client and server must update together. It includes the alpha.5.1 visual interpolation correction. Everyone needs their own matching copy of Captain of Industry. See [alpha.6 changes and validation limits](docs/releases/v0.1.0-alpha.6.md).
 
 | Package | Start here |
 | --- | --- |
@@ -25,9 +25,9 @@ For release changes and tested behavior, see the [alpha.5 release notes](docs/re
 
 ## Docker and Portainer
 
-**Linux Docker/Portainer deployment is paused.** The existing container cannot perform the required Steam validation and is not a safe or ready hosting option. Current source rejects that platform before loading an island. The [Docker / Portainer guide](docs/docker-portainer.md) retains the old stack instructions as an explicitly unvalidated reference.
+**The published alpha.5 Docker image must not be used.** Current source contains an experimental Linux amd64 replacement that runs the Windows host and a genuine Windows Steam client together under Wine, with a persistent private profile. Authentication-only mode leaves the island unloaded by default. See the [Docker / Portainer guide](docs/docker-portainer.md) for current test evidence, required validation, and stack setup.
 
-Restoring container support requires a supported authenticated hosting path and runtime validation. Copying game files into a container is insufficient. For current development, use the authenticated Windows x64 path in the [hosting guide](docs/hosting-guide.md).
+The native Linux host cannot run CoI's installed Windows Steam wrapper. Copying game files into that old container is insufficient. The tested native hosting option is Windows x64 with Steam signed in, as described in the [hosting guide](docs/hosting-guide.md).
 
 ## Server manager from source
 

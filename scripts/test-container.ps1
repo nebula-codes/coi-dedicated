@@ -5,6 +5,7 @@ param(
     [string]$GameDir = $env:COI_GAME_DIR
 )
 $ErrorActionPreference = 'Stop'
+throw 'This archived test targets the unauthenticated native Linux image and cannot validate the Wine/Steam stack. See docs/docker-portainer.md for current validation requirements.'
 if (-not $GameDir) { $GameDir = 'F:\SteamLibrary\steamapps\common\Captain of Industry' }
 $GameDir = (Resolve-Path -LiteralPath $GameDir).Path
 $repository = Split-Path $PSScriptRoot -Parent
