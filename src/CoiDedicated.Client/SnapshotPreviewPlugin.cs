@@ -19,7 +19,7 @@ using UnityEngine;
 
 namespace CoiDedicated.Client;
 
-[BepInPlugin(PluginId, "CoI Dedicated Client Prototype", "0.5.1")]
+[BepInPlugin(PluginId, "CoI Dedicated Client Prototype", "0.6.0")]
 [BepInProcess("Captain of Industry.exe")]
 public sealed class SnapshotPreviewPlugin : BaseUnityPlugin
 {

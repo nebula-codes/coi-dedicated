@@ -34,7 +34,7 @@ Joining remembers the server address, port, player name, and full join-key path 
 
 ## What works in this alpha
 
-Alpha.5 expands normal building batches, early-game actions, storage controls, research, terrain designations, roads, logistics zones, and many other controls. See [the full coverage ledger](multiplayer-coverage.md) for tested paths and remaining restrictions.
+Alpha.6 adds all 87 previously missing UI-observed command classes, including advanced train, industrial/world, cut/paste, surface and space controls. It requires the matching alpha.6 server. Specialized copied settings and some native variants still have limits. See [the full coverage ledger](multiplayer-coverage.md) for tested paths and remaining restrictions.
 
 Set a distinct player name in **F8 before joining** so others recognize you. **Show and share player cameras and building footprint previews** controls the indicators. Colored labels mark other players' camera focus, including off-screen directions; rectangles approximate their views. Outlines show active building, transport, rail, paving, and terrain-tool previews. They are advisory outlines, not construction commands or textured ghosts. Visual placement still needs broader two-player in-game checks.
 

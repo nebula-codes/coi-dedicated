@@ -1,8 +1,8 @@
 # Multiplayer functionality coverage
 
-Alpha.5 targets CoI **0.8.7d**, compatibility **dedicated-prototype-5 / cmd1**. It is not full gameplay parity. Earlier public releases and local alpha.3/alpha.4 candidates cannot join a prototype 5 server. Upgrade every client and server together.
+Alpha.6 targets CoI **0.8.7d**, compatibility **dedicated-prototype-6 / cmd1**. It is not full gameplay parity. Earlier clients cannot join a prototype 6 server. Upgrade every client and server together.
 
-The adapter now covers **199 command classes through 200 wire schemas** (the configured-building variant has its own schema). Static inspection found **328 concrete game commands**, with **282** observed constructor callers in Unity code; these totals also include UI-only, developer, and internal actions. They are not a completion percentage. The complete machine-readable ledger is [multiplayer-command-coverage.json](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/research/multiplayer-command-coverage.json). It distinguishes implemented codecs, native processor fixtures, and replay evidence; 87 commands with observed UI callers still lack a codec.
+The adapter now covers **286 command classes through 287 wire schemas** (the configured-building variant has its own schema). Static inspection found **328 concrete game commands**, with **282** observed constructor callers in Unity code; these totals also include UI-only, developer, and internal actions. They are not a completion percentage. The complete machine-readable ledger is [multiplayer-command-coverage.json](https://github.com/nebula-codes/coi-dedicated/blob/codex/gameplay-and-presence/research/multiplayer-command-coverage.json). It distinguishes implemented codecs, native processor fixtures, and replay evidence; All 87 previously missing UI-observed command classes now have explicit codecs. Schema coverage does not establish every UI variant or complete gameplay parity.
 
 ## Implemented paths
 
@@ -12,12 +12,19 @@ The adapter now covers **199 command classes through 200 wire schemas** (the con
 - Inspector add/remove vehicle controls, including assigning trucks to tree harvesters, preserve the selected vehicle type, count (up to 128), and optional logistics zone. Native game logic chooses available compatible vehicles. Individual vehicle assignment/unassignment remains supported.
 - Belt/pipe transport construction schema; mining/dumping designations and removals; mining/forestry work areas; dump-product selection.
 - Road/surface designation add/remove, decal add/remove/color, bridge plans/lane settings, rail plans, logistics zone lifecycle and truck work rules. Rail support geometry is rebuilt from trusted prototypes and current terrain.
-- Train line/network naming and lifecycle, basic schedules and station membership, schedule flags/reordering, refueling thresholds and assorted train controls. These schemas do not imply every rail shape, running-train configuration, or schedule variant has been played through.
+- Train line/network naming and lifecycle, schedules and station membership, departure conditions, waypoint restrictions, wagon filters, train construction/repair/recovery, track directions/blocks/pillars, colors and icons. These schemas do not imply every rail shape, running-train configuration, or schedule variant has been played through.
 - Research queue/start/stop, edicts, contracts/trading, shipyard repair, crop schedule changes, storage products/alerts/logistics/sliders, depot build queues, assignments, priorities, naming, and many scalar factory/vehicle/ship controls. A schema being implemented does not mean every UI variant is tested.
 - Camera focus labels including off-screen locations, approximate camera view rectangles, and outlines for buildings, transports, rail plans, paving and terrain tools. These are cosmetic state, separate from authoritative simulation commands. F8 provides a player name and show/share toggle.
 - Shared speed 1–4 with fixed native step budgeting, selected-state checkpoints and bounded automatic fresh-snapshot recovery. F8 remembers connection details across game/PC restarts; key contents are never copied into settings.
 
+- Cut/paste selections of up to 128 ordinary machines/storage buildings whose actual copied settings pass the typed paste schema. Transport cuts, mixed selections with unsupported buildings, and unsupported configuration fields are rejected before any source is removed. Replacement and Unity quick actions, bulk road/decal tools, stacker controls, notification dismissal, pinned-product order, difficulty choices and space-program commands.
+- Cargo/ship fuel and contracts, livestock and offices, datacenters and nuclear settings, vehicle replacement, world-map fleet/loan/settlement controls. Sandbox storage cheats and instant terrain fulfillment require the authoritative island's sandbox mode.
+
 ## Validation completed
+
+- Alpha.6 new-command suite: all 87 newly added schemas have wire fixtures; 1,701 truncated/trailing packets, 48 invalid-value fixtures, and two crafted cut packets are rejected. Native fixtures produced successful results for 81 command classes, expected game prerequisite errors for 4, and wire-only coverage for 2 (cargo-depot contract assignment and ocean access recovery). Asteroid drop testing checks entry into the native processing state, not completion of terrain impact.
+- Native cut/paste regression preserves copied storage settings through the actual paste batch. Unsupported mixed selections, configuration fields, and transport cuts leave their sources intact; cut admission is isolated so an earlier command cannot invalidate its preflight within the same tick.
+- Alpha.6 startup regression preserved the 97-person island through 120 storage placements and 3,100 further updates. Two revision 6 headless peers each replayed 400 updates with two matching checkpoints and identical final raw simulation state, including shared speed/pause changes and placement. These replay checks do not individually cover all 87 new command classes.
 
 - Unit checks cover explicit wire fixtures, bounds, truncation, invalid versions/booleans/UTF-8, unknown kinds, invalid plans, typed references, and prohibited placement flags.
 - A copied island accepted native batch placements for nine prototype families: ordinary machine, unit/loose/fluid storage, research lab, vehicle depot, farm, mining tower, and forestry tower. Duplicate placement and original native completion timing were checked.
@@ -35,98 +42,12 @@ These are bounded fixture results, not proof of long-session determinism. Actual
 
 ## Remaining work
 
-Remaining gaps include mixed/specialized blueprints and external configuration graphs, advanced train departure conditions/filters and some train operations, bulk decal/surface tools, world-map/loan/cargo operations and specialized numeric inspectors listed below. Elevated/electrified rails and multi-segment bridge plans have codecs but still need native/in-game variant tests. Speeds above 4 are intentionally rejected.
+Remaining gaps include mixed/specialized blueprints and external configuration graphs, plus untested UI variants of otherwise implemented commands. Elevated/electrified rails and multi-segment bridge plans have codecs but still need native/in-game variant tests. Speeds above 4 are intentionally rejected.
 
 Checkpoints cover selected canonical fields, not every queue, route, buffer or private entity state. The terrain scan can briefly pause play; large-island and multi-hour sessions need further measurement. Automatic Unity scene reloading and two-player overlay visuals require an actual in-game check.
 
 Presence shows outlines, not textured 3D ghosts. It includes up to 32 previews per player, eight players, and five updates per second. Removal tools, rail-junction overlays and copied graphs outside active tools are not represented. Camera view rectangles use an approximate horizontal plane.
 
-## Commands with observed UI callers still lacking a codec
+## Command audit
 
-- `Mafi.Base.Prototypes.Buildings.SetBillboardColorCmd`
-- `Mafi.Base.Prototypes.Trains.TrainStationFuelSetFuelCmd`
-- `Mafi.Core.Buildings.Cargo.Modules.CargoDepotAssignContractCmd`
-- `Mafi.Core.Buildings.Cargo.Modules.CargoShipDepartNowCmd`
-- `Mafi.Core.Buildings.Cargo.Modules.CargoShipPayWithUnityIfOutOfFuelCmd`
-- `Mafi.Core.Buildings.Cargo.Modules.CargoShipSetFuelSaverCmd`
-- `Mafi.Core.Buildings.Farms.AnimalFarmSetSlaughterLimitCmd`
-- `Mafi.Core.Buildings.Farms.MoveAnimalsCmd`
-- `Mafi.Core.Buildings.Mine.AddProductToNotifyIfCannotDumpCmd`
-- `Mafi.Core.Buildings.Mine.RemoveProductToNotifyIfCannotDumpCmd`
-- `Mafi.Core.Buildings.Offices.SetOfficeComputingBoostStepCmd`
-- `Mafi.Core.Buildings.Offices.SetOfficeFocusStepCmd`
-- `Mafi.Core.Buildings.Shipyard.ShipyardWorldEntityConstructionToggle`
-- `Mafi.Core.Buildings.Storages.StorageCheatClearProductCmd`
-- `Mafi.Core.Buildings.Storages.StorageSetCheatModeCmd`
-- `Mafi.Core.Entities.Commands.SetDumpHeightOffsetCmd`
-- `Mafi.Core.Entities.ReplaceEntityCmd`
-- `Mafi.Core.Entities.Static.Commands.CutEntitiesForPasteCmd`
-- `Mafi.Core.Entities.Static.Commands.FinishBuildOfStaticEntityCmd`
-- `Mafi.Core.Entities.Static.Commands.SpendUpointsOnEntitiesCmd`
-- `Mafi.Core.Entities.Static.Commands.StartDeconstructionOfTransportSubSectionsCmd`
-- `Mafi.Core.Entities.Static.RecoverOceanAccessCmd`
-- `Mafi.Core.Entities.ToggleEnabledGroupCmd`
-- `Mafi.Core.Factory.Datacenters.DataCenterToggleRackCmd`
-- `Mafi.Core.Factory.ElectricPower.SetElectricityGenerationPriorityCmd`
-- `Mafi.Core.Factory.NuclearReactors.NuclearReactorSetEnrichmentStepCmd`
-- `Mafi.Core.Factory.NuclearReactors.NuclearReactorSetPowerLevelCmd`
-- `Mafi.Core.Factory.Transports.AddTransportPillarCmd`
-- `Mafi.Core.Factory.Transports.DeconstructTransportSegmentCmd`
-- `Mafi.Core.Factory.Transports.StackerTowerSelectProductForSlopePreviewCmd`
-- `Mafi.Core.Factory.Transports.StackerTowerSetDumpRadiusCmd`
-- `Mafi.Core.Factory.Transports.StackerTowerSetMaxSegmentsCmd`
-- `Mafi.Core.Factory.Zippers.ZipperSetPriorityPortsCmd`
-- `Mafi.Core.Game.ChangeGameDifficultyCmd`
-- `Mafi.Core.MessageNotifications.MessageNotificationDismissCmd`
-- `Mafi.Core.Notifications.NotificationDismissCmd`
-- `Mafi.Core.Products.PinnedProductReorderCmd`
-- `Mafi.Core.SpaceProgram.BringAsteroidToOrbitCmd`
-- `Mafi.Core.SpaceProgram.DiscardAsteroidCmd`
-- `Mafi.Core.SpaceProgram.DropAsteroidAtCmd`
-- `Mafi.Core.SpaceProgram.ReorderLaunchPadCargoBufferCmd`
-- `Mafi.Core.SpaceProgram.SetOrbitCargoLimitCmd`
-- `Mafi.Core.Terrain.Designation.BatchAddSurfaceDecalCmd`
-- `Mafi.Core.Terrain.Designation.BatchRemoveSurfaceDecalCmd`
-- `Mafi.Core.Terrain.Designation.BatchRemoveSurfacePlacingDesignationsCmd`
-- `Mafi.Core.Terrain.Designation.PasteSurfaceDesignationsCmd`
-- `Mafi.Core.Terrain.Designation.QuickFulfillDesignationsCmd`
-- `Mafi.Core.Terrain.Props.QuickRemovePropsCmd`
-- `Mafi.Core.Terrain.Trees.RemoveManualPlantTreeCmd`
-- `Mafi.Core.Trains.AddTrainTrackPillarCmd`
-- `Mafi.Core.Trains.BuildTrainCmd`
-- `Mafi.Core.Trains.EditPathfindingRestrictionCmd`
-- `Mafi.Core.Trains.QuickRepairTrainCmd`
-- `Mafi.Core.Trains.RecoverTrainCmd`
-- `Mafi.Core.Trains.RemoveDepartConditionCmd`
-- `Mafi.Core.Trains.RemovePathfindingRestrictionCmd`
-- `Mafi.Core.Trains.ReorderDepartConditionCmd`
-- `Mafi.Core.Trains.ReplaceEntityInScheduleCmd`
-- `Mafi.Core.Trains.ReverseTracksCmd`
-- `Mafi.Core.Trains.ScrapTrainCarCmd`
-- `Mafi.Core.Trains.SetDepartConditionCombineMethodCmd`
-- `Mafi.Core.Trains.SetTrainLineColorCmd`
-- `Mafi.Core.Trains.SetTrainLineIcon`
-- `Mafi.Core.Trains.SetTrainLineLocoColorModeCmd`
-- `Mafi.Core.Trains.SetTrainLineLocoCustomColorCmd`
-- `Mafi.Core.Trains.SetTrainNetworkColorCmd`
-- `Mafi.Core.Trains.SetTrainNetworkLocoColorModeCmd`
-- `Mafi.Core.Trains.SetTrainNetworkLocoCustomColorCmd`
-- `Mafi.Core.Trains.SetTrainTrackCriticalBlockStateCmd`
-- `Mafi.Core.Trains.SetTrainTrackSuperBlockStateCmd`
-- `Mafi.Core.Trains.SetWagonProductFilterCmd`
-- `Mafi.Core.Trains.ToggleBidirectionalCommand`
-- `Mafi.Core.Trains.TrainContainsDepartConditionEditCmd`
-- `Mafi.Core.Trains.TrainDurationDepartConditionEditCmd`
-- `Mafi.Core.Vehicles.AddVehicleReplacementTaskCmd`
-- `Mafi.Core.Vehicles.Commands.ReplaceVehicleCmd`
-- `Mafi.Core.Vehicles.RemoveVehicleReplacementTaskCmd`
-- `Mafi.Core.World.Entities.SetShiftsCountForMineCmd`
-- `Mafi.Core.World.FleetModificationsPrepareCmd`
-- `Mafi.Core.World.GoToLocationCmd`
-- `Mafi.Core.World.Loans.AcceptLoanCmd`
-- `Mafi.Core.World.Loans.MakeLoanOverpaymentCmd`
-- `Mafi.Core.World.Loans.SetLoanBufferPriorityCmd`
-- `Mafi.Core.World.WorldMapEntityCancelRepairCmd`
-- `Mafi.Core.World.WorldMapEntityStartRepairCmd`
-- `Mafi.Core.World.WorldMapEntityUpgradeCmd`
-- `Mafi.Core.World.WorldMapSettlementAdoptPopsCmd`
+No command class in the current 282-command UI-observed inventory lacks a codec. The ledger records native success fixtures separately from expected-error paths and wire-only tests. Specialized copied configuration graphs remain explicitly limited, even when the command itself is supported.

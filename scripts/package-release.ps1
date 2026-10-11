@@ -1,7 +1,7 @@
 #Requires -Version 7.0
 [CmdletBinding()]
 param(
-    [ValidatePattern('^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$')][string]$Version = '0.1.0-alpha.5',
+    [ValidatePattern('^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$')][string]$Version = '0.1.0-alpha.6',
     [string]$GameDir = $env:COI_GAME_DIR,
     [string]$OutputDirectory
 )
@@ -44,6 +44,8 @@ Expand-Archive -LiteralPath $bepArchive -DestinationPath $bep
 Build-Project -BuildArgs @('build', (Join-Path $repository 'src\CoiDedicated.Client\CoiDedicated.Client.csproj'), '-c', 'Release', '-p:DebugType=None', '-p:DebugSymbols=false', '-o', (Join-Path $work 'client-build'), "-p:GameDir=$GameDir", "-p:BepInExDir=$(Join-Path $bep 'BepInEx\core')", "-p:BaseOutputPath=$(Join-Path $work 'build\client\')", "-p:Version=$Version")
 Build-Project -BuildArgs @('publish', (Join-Path $repository 'src\CoiDedicated\CoiDedicated.csproj'), '-c', 'Release', '-p:DebugType=None', '-p:DebugSymbols=false', '-r', 'win-x64', '--self-contained', 'true', '-p:UseAppHost=true', '-p:PublishSingleFile=false', '-o', (Join-Path $server 'bin\server'), "-p:GameDir=$GameDir", "-p:BaseOutputPath=$(Join-Path $work 'build\host\')", "-p:Version=$Version")
 Build-Project -BuildArgs @('publish', (Join-Path $repository 'src\CoiDedicated.Manager\CoiDedicated.Manager.csproj'), '-c', 'Release', '-p:DebugType=None', '-p:DebugSymbols=false', '-r', 'win-x64', '--self-contained', 'true', '-p:PublishSingleFile=false', '-o', (Join-Path $server 'bin\manager'), "-p:BaseOutputPath=$(Join-Path $work 'build\manager\')", "-p:Version=$Version")
+Build-Project -BuildArgs @('publish', (Join-Path $repository 'src\CoiDedicated.Control\CoiDedicated.Control.csproj'), '-c', 'Release', '-p:DebugType=None', '-p:DebugSymbols=false', '-r', 'win-x64', '--self-contained', 'true', '-p:PublishSingleFile=false', '-o', (Join-Path $server 'bin\control'), "--artifacts-path=$(Join-Path $work 'build\control')", "-p:Version=$Version")
+Build-Project -BuildArgs @('publish', (Join-Path $repository 'src\CoiDedicated.SteamCheck\CoiDedicated.SteamCheck.csproj'), '-c', 'Release', '-p:DebugType=None', '-p:DebugSymbols=false', '-r', 'win-x64', '--self-contained', 'true', '-p:PublishSingleFile=false', '-o', (Join-Path $server 'bin\steam-check'), "--artifacts-path=$(Join-Path $work 'build\steam-check')", "-p:Version=$Version")
 
 $pluginDestination = Join-Path $clientPayload 'BepInEx\plugins\CoiDedicated'
 [void][IO.Directory]::CreateDirectory($pluginDestination)
@@ -55,7 +57,7 @@ Get-ChildItem -LiteralPath (Join-Path $repository 'distribution\server') -File |
 foreach ($package in @($client,$server)) {
     Copy-Item -LiteralPath (Join-Path $repository 'LICENSE'), (Join-Path $repository 'THIRD-PARTY-NOTICES.md') -Destination $package
     Copy-Item -LiteralPath (Join-Path $repository 'distribution\third-party') -Destination $package -Recurse
-    [ordered]@{ version=$Version; platform='win-x64'; gameVersion='0.8.7d'; compatibility='dedicated-prototype-5 / cmd1'; experimental=$true } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'release.json') -Encoding utf8NoBOM
+    [ordered]@{ version=$Version; platform='win-x64'; gameVersion='0.8.7d'; compatibility='dedicated-prototype-6 / cmd1'; experimental=$true } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $package 'release.json') -Encoding utf8NoBOM
 }
 $doorstopSource = Join-Path $dependencies 'UnityDoorstop-v4.5.0-source.zip'
 Download-Checked 'https://github.com/NeighTools/UnityDoorstop/archive/refs/tags/v4.5.0.zip' $doorstopSource '7F0C963104AA08BF5FEFEF8FF85E7FECD8306838F5AF3101487D9DB4E9188D63'

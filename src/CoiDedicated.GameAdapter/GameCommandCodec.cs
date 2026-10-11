@@ -21,7 +21,7 @@ namespace CoiDedicated.GameAdapter
     /// <summary>
     /// Explicit allowlist for network-originated game commands. Decode must run on the simulation
     /// thread immediately before scheduling, so world references are checked against the current island.
-    /// No game serializer, network-supplied CLR type, reflection, or object graph deserializer is used.
+    /// No game serializer, network-supplied CLR type, network-directed reflection, or object graph deserializer is used.
     /// </summary>
     public static partial class GameCommandCodec
     {
@@ -35,8 +35,8 @@ namespace CoiDedicated.GameAdapter
         private static readonly UTF8Encoding Utf8 = new UTF8Encoding(false, true);
 
         /// <summary>
-        /// Native schedule insert/remove and root-priority handlers omit some execution-time
-        /// index/membership checks. Admit these alone so validation sees preceding tick results.
+        /// Native list edits and root-priority operations can change the meaning of later
+        /// indices or membership. Admit these alone so validation sees preceding tick results.
         /// This is admission policy only; the full decoder still validates every accepted payload.
         /// </summary>
         public static bool RequiresIsolatedTick(ReadOnlyMemory<byte> payload)
@@ -44,7 +44,7 @@ namespace CoiDedicated.GameAdapter
             var bytes=payload.Span;
             if(bytes.Length<4 || (bytes[0]|bytes[1]<<8)!=Version)return false;
             int kind=bytes[2]|bytes[3]<<8;
-            return kind==217 || kind==227 || kind==241 || kind==252;
+            return kind==217 || kind==227 || kind==241 || kind==252 || kind==352 || kind==355 || kind==356 || kind==357 || kind==358 || kind==373 || kind==374 || kind==414 || kind==420 || kind==429 || kind==433;
         }
 
         public static bool TryEncode(IInputCommand command, out byte[] payload) => TryEncode(command, out payload, out _);
@@ -141,6 +141,10 @@ namespace CoiDedicated.GameAdapter
                 else if (TryEncodeBridges(command, writer)) { }
                 else if (TryEncodeRails(command, writer)) { }
                 else if (TryEncodeTrainControls(command, writer)) { }
+                else if (TryEncodeRemainingIndustry(command, writer)) { }
+                else if (TryEncodeRemainingTrains(command, writer)) { }
+                else if (TryEncodeRemainingMisc(command, writer)) { }
+                else if (TryEncodeRemainingSurfaceBatch(command, writer)) { }
                 else
                 {
                     reason = $"Command '{type.Name}' is not supported by dedicated multiplayer yet.";
@@ -262,7 +266,7 @@ namespace CoiDedicated.GameAdapter
                     extra ??= DecodeDetailControls(kind, reader, resolver);
                     extra ??= DecodeBridges(kind, reader, resolver);
                     extra ??= DecodeRails(kind, reader, resolver);
-                    extra ??= DecodeTrainControls(kind, reader, resolver);
+                    extra ??= DecodeTrainControls(kind, reader, resolver) ?? DecodeRemainingIndustry(kind, reader, resolver) ?? DecodeRemainingTrains(kind, reader, resolver) ?? DecodeRemainingMisc(kind, reader, resolver) ?? DecodeRemainingSurfaceBatch(kind, reader, resolver);
                     if (extra != null) return extra;
                     throw new ProtocolException($"Unsupported game-command kind {(ushort)kind}.");
             }

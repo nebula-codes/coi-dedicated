@@ -1,21 +1,21 @@
 # Host a dedicated island
 
-The Windows x64 server runs the island without an open Unity game window or a connected player. **Steam must remain running and signed into an account that owns Captain of Industry.** The local browser manager controls its process, settings, saves, and backups. This **alpha** still has limited multiplayer action coverage; read the [player guide](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/docs/player-guide.md) before starting a shared island.
+The Windows x64 server runs the island without an open Unity game window or a connected player. **Steam must remain running and signed into an account that owns Captain of Industry.** The local browser manager controls its process, settings, saves, and backups. This **alpha** still has limited multiplayer action coverage; read the [player guide](https://github.com/nebula-codes/coi-dedicated/blob/codex/gameplay-and-presence/docs/player-guide.md) before starting a shared island.
 
 **Do not host with the published alpha.5 server ZIP or Docker image.** A startup defect in those assets omits the game's Steam validation and can trigger a delayed pirate game-over, including population loss and vehicle scrapping. The startup correction is in current source; those published assets remain affected. Preserve the current island and any pre-incident backups separately. Correcting startup does not undo damage already saved to an island. See [startup validation and test status](server-startup-validation.md).
 
 ## First start
 
 1. Install **Captain of Industry 0.8.7d** on a Windows x64 host. Start Steam and sign into an account that owns the game. The host uses the installed game files and their Steam libraries.
-2. Use a source checkout containing the startup correction and the **.NET 10 SDK**, or a later server release whose notes explicitly include that correction. The published alpha.5 server ZIP is affected and must not be used. Check the [validation ledger](server-startup-validation.md) before testing an island.
-3. With all profiles stopped, rebuild the source checkout using `.\scripts\build.ps1`, then run **Server Manager.cmd**. Reopening an old dashboard does not replace its host binary. A corrected packaged release would use **Start Server Manager.cmd**; this document does not announce such a release.
+2. Extract the matching **alpha.6 Windows server-manager ZIP**, or build current source with the **.NET 10 SDK**. The ZIP includes its runtime and requires no SDK. The old published alpha.5 server assets are affected and must not be used.
+3. With all profiles stopped, run **Start Server Manager.cmd** from the extracted package. For source builds, rebuild using `.\scripts\build.ps1`, then run **Server Manager.cmd**. Reopening an old dashboard does not replace its host binary.
 4. Open the dashboard at **http://127.0.0.1:28560** if the browser does not open automatically.
 5. In **Settings**, confirm the installed game directory, map, ports, and autosave interval. Choose a name for the island and save the settings.
 6. Click **Start** and wait for **Running**. The server validates Steam before creating or loading an island, then prepares the world before accepting players.
 
-The launcher looks for Steam installations. If discovery fails, set the game directory in the dashboard. Each PC running the game client needs matching game assemblies and DLC configuration. This startup correction retains compatibility revision 5 and requires no change to the alpha.5 or alpha.5.1 clients. The current validation used the base game; other mods and DLC combinations remain unverified.
+The launcher looks for Steam installations. If discovery fails, set the game directory in the dashboard. Each PC running the game client needs matching game assemblies and DLC configuration. Alpha.6 uses compatibility revision 6 and requires alpha.6 clients; older clients cannot join. The current validation used the base game; other mods and DLC combinations remain unverified.
 
-Startup calls the installed game's unchanged Facepunch `SteamClient.Init` implementation and checks `SteamClient.IsValid` and `SteamApps.IsSubscribed`. Only successful real validation allows world initialization. An unsupported platform, missing Steam library, or failed validation stops startup before loading the island. Keep Steam running; an open CoI game window is unnecessary. If validation fails, confirm the owning account is signed in and verify the installed game files through Steam, then inspect the server log. Linux containers do not currently provide this validated startup path.
+Startup calls the installed game's unchanged Facepunch `SteamClient.Init` implementation and checks `SteamClient.IsValid` and `SteamApps.IsSubscribed`. Only successful real validation allows world initialization. An unsupported platform, missing Steam library, or failed validation stops startup before loading the island. Keep Steam running; an open CoI game window is unnecessary. If validation fails, confirm the owning account is signed in and verify the installed game files through Steam, then inspect the server log. The experimental Wine container still needs complete authenticated runtime validation; see [Docker status](docker-portainer.md).
 
 The populated **New Haven** profile is the default. Map and starting-factory settings affect a new island only. An existing `island.save` is resumed when the server starts.
 
@@ -23,7 +23,7 @@ The populated **New Haven** profile is the default. Map and starting-factory set
 
 For players on other computers, stop the profile, set its listen address to your LAN/VPN interface address or **0.0.0.0**, and start it again. Allow incoming **TCP 28551** through Windows Firewall for the network you use. The manager does not change firewall or router settings.
 
-Share the host's LAN/VPN address, player port, this release's client download, and the profile's **join.key** download with your players privately. Follow the [player guide](https://github.com/nebula-codes/coi-dedicated/blob/v0.1.0-alpha.5/docs/player-guide.md) to install the client and join through F8.
+Share the host's LAN/VPN address, player port, this release's client download, and the profile's **join.key** download with your players privately. Follow the [player guide](https://github.com/nebula-codes/coi-dedicated/blob/codex/gameplay-and-presence/docs/player-guide.md) to install the client and join through F8.
 
 | Default port | Purpose | Exposure |
 | --- | --- | --- |

@@ -1,0 +1,16 @@
+# Native miscellaneous command regression
+
+```powershell
+dotnet build tests/CoiDedicated.RemainingMisc.Native.Tests/CoiDedicated.RemainingMisc.Native.Tests.csproj --artifacts-path .work/misc-native-build
+dotnet .work/misc-native-build/bin/CoiDedicated.RemainingMisc.Native.Tests/debug/CoiDedicated.RemainingMisc.Native.Tests.dll ABSOLUTE_SOURCE_SAVE ABSOLUTE_NEW_OUTPUT_DIR
+```
+
+The runner copies a CoI 0.8.7d save, refuses an existing output directory, and uses the production host's genuine Steam startup validation. A valid local Steam session is required; `COI_GAME_DIR` overrides the local game installation. It never connects to the live server or manager.
+
+Every executed command is encoded, decoded, re-encoded byte-for-byte, scheduled through native input processing, and checked for native completion and result. Successful fixtures verify observable effects for group pause/resume, pinned-product reordering (including native append at Count), message/notification dismissal, stacker settings, manual tree removal, prop removal, orbital cargo limits, copied storage settings during relocation, transport removal, elevated transport pillar placement, cargo-buffer reordering, and sandbox-gated actions. A cut storage plan must be pasted through the actual native batch command with its product setting preserved. Mixed unsupported building cuts and storage configurations with unsupported fields must leave every source intact; transport cuts must be rejected without changing the trajectory. Paid building and quick construction must reduce actual Unity.
+
+The disposable fixture explicitly creates/unlocks required entities and uses public native construction helpers. Sandbox is enabled only in the copied fixture, using its native setting API after proving ordinary-world decode rejection. Native GameDifficultyConfig.AllOptions excludes Sandbox; the ChangeGameDifficultyCmd test instead changes the actual QuickRepair option and verifies the result. No private game assemblies are changed.
+
+Asteroid fixtures use the game's public fixture helper. Discard must remove the selected asteroid. Drop must enter native processing at the requested water location; the test does not await full terrain impact completion. Bring must retain the asteroid and produce the normal missing-space-station rejection in this early-game fixture.
+
+Latest evidence: `.work/cut-preflight-review/native-a/results.json` and `.work/cut-preflight-review/native-a.log`: 37 successful invocations across 28 concrete command classes (26 new plus existing StorageSetProduct and BatchCreateStaticEntities fixture commands), one expected native BringAsteroidToOrbit rejection, three sandbox decode rejections, two cut-preflight decode rejections, zero native error logs/exceptions. The wire fixture separately rejects empty/129-building/transport selections, including hostile packets bypassing the encoder, and requires isolated admission for cut commands. Cut support is limited to at most 128 ordinary machine/storage configurations accepted by the typed paste schema. RecoverOceanAccess is untested; BringAsteroidToOrbit's successful crewed-station path and complete asteroid-impact lifecycle remain untested. This is native processor coverage, not two-client Unity UI coverage.
